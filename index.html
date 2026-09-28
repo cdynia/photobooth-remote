@@ -465,7 +465,9 @@ $('textGoBtn')?.addEventListener('click', async ()=>{
   const d=cur||{}; if(!d.lastStripId){ toast('Strip still uploading — try again'); return; }
   const btn=$('textGoBtn'); btn.disabled=true; btn.textContent='Sending…';
   try{ const {fns}=fb(); await httpsCallable(fns,'sendStripSms')({eventCode:PAIR.e,stripId:d.lastStripId,phone:'+1'+digits});
-    $('textSheet').classList.remove('show'); toast('Text sent!'); }
+    $('textSheet').classList.remove('show'); toast('Text sent!');
+    // Clear the booth back to attract now that this strip has been sent.
+    sendCmd({action:'done'}); }
   catch(e){ toast('Text failed — try again'); }
   finally{ btn.disabled=false; btn.textContent='Send text'; }
 });
