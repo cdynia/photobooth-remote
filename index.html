@@ -198,6 +198,20 @@
   .netbanner.warn { background:var(--gold); color:#241d00; }
   .netbanner.err  { background:var(--danger); color:#2a0806; }
   .ghosticon.on { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  /* Live camera view — full-screen */
+  .liveov { position:fixed; inset:0; z-index:70; background:#000; display:none; }
+  .liveov.show { display:block; }
+  .liveov video { width:100%; height:100%; object-fit:contain; background:#000; display:block; }
+  .livebar { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:calc(14px + env(safe-area-inset-top)) 18px 18px; color:#fff; font-weight:800; font-size:0.9rem;
+    background:linear-gradient(rgba(0,0,0,0.6), transparent); }
+  .livebar .ld { display:inline-flex; align-items:center; gap:8px; }
+  .livebar .ld i { width:9px; height:9px; border-radius:50%; background:var(--danger); box-shadow:0 0 8px var(--danger); animation:livepulse 1.4s ease-in-out infinite; }
+  @keyframes livepulse { 50% { opacity:0.35; } }
+  .liveclose { appearance:none; border:1px solid rgba(255,255,255,0.28); background:rgba(0,0,0,0.4); color:#fff; width:42px; height:42px; border-radius:50%; font-size:1.05rem; cursor:pointer; }
+  .livestatus { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#fff; text-align:center; padding:28px; }
+  .livestatus.hidden { display:none; }
+  .livestatus .msg { font-size:0.95rem; font-weight:600; max-width:24ch; line-height:1.5; color:#e9ecec; }
   /* strip lightbox */
   .lb { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.92); display:none; align-items:center; justify-content:center; padding:24px; }
   .lb.show { display:flex; } .lb img { max-width:100%; max-height:100%; border-radius:10px; }
@@ -245,7 +259,10 @@
           <button class="btn go" id="textBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="t">Text</span></button>
           <button class="btn" id="retakeBtn" style="display:none;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Retake</span></button>
         </div>
-        <button class="btn wide" id="viewStripsBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg><span class="t">View strips</span></button>
+        <div class="grid2">
+          <button class="btn wide" id="viewStripsBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg><span class="t">View strips</span></button>
+          <button class="btn wide" id="liveBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="t">Live view</span></button>
+        </div>
       </div>
 
       <div class="spacer"></div>
@@ -346,12 +363,20 @@
   </div></div>
 
   <div class="lb" id="lightbox"><img id="lbImg" alt="Strip"></div>
+
+  <!-- Live camera view (WebRTC) -->
+  <div class="liveov" id="liveOverlay">
+    <video id="liveVideo" playsinline autoplay muted></video>
+    <div class="livebar"><span class="ld"><i></i>Live · booth camera</span><button class="liveclose" id="liveCloseBtn" aria-label="Close">✕</button></div>
+    <div class="livestatus" id="liveStatus"><div class="spinner"></div><div class="msg" id="liveStatusTxt">Connecting to the booth…</div></div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="jsQR.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot, setDoc, collection, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, setDoc, collection, query, orderBy, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 
 const firebaseConfig = {
@@ -464,12 +489,9 @@ function parsePair(str){ try{ const u=new URL(str,location.href); const e=u.sear
 let _app=null,_db=null,_fns=null;
 function fb(){ if(!_app){ _app=initializeApp(firebaseConfig); _db=getFirestore(_app); _fns=getFunctions(_app); } return {db:_db,fns:_fns}; }
 
-const fromUrl=parsePair(location.href);
-if (fromUrl){ savePair(fromUrl); history.replaceState(null,'',location.pathname); connect(fromUrl); }
-else showScan(loadPair());
 
 function showScan(saved){
-  releaseWake(); setAlertBanner(null);
+  releaseWake(); setAlertBanner(null); closeLiveView();
   showView('scanView');
   $('resumeCard').classList.toggle('hidden',!saved);
   if (saved&&saved.name) $('resumeName').textContent=saved.name;
@@ -505,6 +527,7 @@ function stopScan(){ scanning=false; if(scanStream){scanStream.getTracks().forEa
 // Connect
 let statusUnsub=null,cur=null,lastAck=null,PAIR=null;
 let stripsUnsub=null, stripsCache=[];
+let livePeer=null, liveUnsub=null, liveSession=null, liveSeen=null, liveOffered=false, livePing=null, liveTimeout=null;
 const ONLINE_MS=45000; const online=(d)=>d&&d.lastSeen&&(Date.now()-d.lastSeen)<ONLINE_MS;
 function connect(p){
   if(!p) return showScan(null);
@@ -537,7 +560,7 @@ function setPrimary(which){ // 'start' | 'cancel' | 'reopen' | 'next'
 function render(d){
   cur=d;
   if (d&&d.token&&d.token!==PAIR.t){
-    stopStripsWatch(); $('lastSess').classList.add('hidden');
+    stopStripsWatch(); $('lastSess').classList.add('hidden'); closeLiveView();
     $('gate').innerHTML='This remote link was <b>revoked</b>. On the booth open <b>Remote</b> again and scan the new code.<div style="margin-top:14px;"><button class="cta" id="rescanBtn">Scan new code</button></div>';
     showView('gate'); $('rescanBtn').onclick=()=>{ clearPair(); showScan(null); }; return;
   }
@@ -597,6 +620,8 @@ function render(d){
   $('health').innerHTML = on ? (chip('Camera',h.camera)+chip('Network',h.network)+chip('Printer',h.printer)) : '';
   // View strips: available whenever the booth is online and not mid-capture.
   $('viewStripsBtn').disabled = !on || act==='capturing' || act==='composing';
+  // Live view: online + the booth camera is actually running.
+  $('liveBtn').disabled = !on || (d&&d.health&&d.health.camera===false);
   const canClose=on&&(act==='idle'||act==='preview');
   $('closeLink').style.visibility=canClose?'visible':'hidden';
   $('closeLink').textContent=act==='closed'?'':'Close booth';
@@ -617,13 +642,14 @@ function render(d){
 // in flight so a booth that never answers surfaces a clear warning instead of a
 // silent dead button.
 let _pendingCmd=null, _pendingTimer=null;
-async function sendCmd(extra){
-  buzz();
+async function sendCmd(extra, opts){
+  opts=opts||{};
+  if(!opts.silent) buzz();
   const id=`${Date.now()}_${Math.random().toString(36).slice(2,8)}`; const {db}=fb();
-  _pendingCmd=id; clearTimeout(_pendingTimer);
-  _pendingTimer=setTimeout(()=>{ if(_pendingCmd===id){ _pendingCmd=null; toast('Booth didn’t respond — is it online?'); } }, 7000);
+  if(!opts.silent){ _pendingCmd=id; clearTimeout(_pendingTimer);
+    _pendingTimer=setTimeout(()=>{ if(_pendingCmd===id){ _pendingCmd=null; toast('Booth didn’t respond — is it online?'); } }, 7000); }
   try{ await setDoc(doc(db,'events',PAIR.e,'remote',`${PAIR.b}_cmd`),{token:PAIR.t,id,createdAt:Date.now(),...extra}); }
-  catch(e){ toast('Send failed'); if(_pendingCmd===id){ _pendingCmd=null; clearTimeout(_pendingTimer); } }
+  catch(e){ if(!opts.silent){ toast('Send failed'); if(_pendingCmd===id){ _pendingCmd=null; clearTimeout(_pendingTimer); } } }
 }
 function wire(){
   $('cancelPrimary').onclick=()=>{ if(!$('cancelPrimary').disabled){ sendCmd({action:'cancel'}); toast('Cancelling…'); } };
@@ -637,12 +663,14 @@ function wire(){
   $('printBtn').onclick=()=>{ if(!$('printBtn').disabled) openPrintSheet(); };
   $('textBtn').onclick=()=>{ if(!$('textBtn').disabled) openTextSheet(); };
   $('retakeBtn').onclick=()=>{ if(!$('retakeBtn').disabled){ sendCmd({action:'retake'}); toast('Retaking…'); } };
-  $('switchBtn').onclick=()=>{ if(statusUnsub) statusUnsub(); stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden'); releaseWake(); setAlertBanner(null); setNetBanner(null); showScan(loadPair()); };
+  $('switchBtn').onclick=()=>{ if(statusUnsub) statusUnsub(); stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden'); closeLiveView(); releaseWake(); setAlertBanner(null); setNetBanner(null); showScan(loadPair()); };
   $('sheetCancelBtn').onclick=()=>$('startSheet').classList.remove('show');
   $('printCancelBtn').onclick=()=>$('printSheet').classList.remove('show');
   $('textCancelBtn').onclick=()=>closeTextSheet();
   $('lightbox').onclick=()=>$('lightbox').classList.remove('show');
   $('viewStripsBtn').onclick=()=>{ if(!$('viewStripsBtn').disabled) openStripsSheet(); };
+  $('liveBtn').onclick=()=>{ if(!$('liveBtn').disabled) openLiveView(); };
+  $('liveCloseBtn').onclick=()=>closeLiveView();
   $('stripsCloseBtn').onclick=()=>{ $('stripsSheet').classList.remove('show'); };   // keep the feed live for the Last-strip panel
   $('detailCloseBtn').onclick=()=>$('detailSheet').classList.remove('show');
   $('detailShareBtn').onclick=()=>{ const s=stripsCache.find(x=>x.id===detailId); if(s) shareStrip(s); };
@@ -812,7 +840,68 @@ $('textGoBtn')?.addEventListener('click', async ()=>{
   catch(e){ toast('Text failed — try again'); }
   finally{ btn.disabled=false; btn.textContent='Send text'; }
 });
+// ── Live camera view (WebRTC, receive-only) ──
+// Peer-to-peer, STUN-only: on the same Wi-Fi the video goes straight booth→phone
+// with no relay, so it costs nothing. We only ask the booth to encode while this
+// overlay is open (livePing keepalive), and tear everything down on close.
+// (live-view state is declared with the other connection state, above.)
+function setLiveStatus(msg, spinning){
+  const el=$('liveStatus');
+  if(!msg){ el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.querySelector('.spinner').style.display = spinning ? '' : 'none';
+  $('liveStatusTxt').textContent = msg;
+}
+function openLiveView(){
+  if(!PAIR || livePeer) return;
+  buzz();
+  const sess=`${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+  liveSession=sess; liveSeen=new Set(); liveOffered=false;
+  $('liveOverlay').classList.add('show'); setLiveStatus('Connecting to the booth…', true);
+  const {db}=fb();
+  const rtcRef=doc(db,'events',PAIR.e,'remote',`${PAIR.b}_rtc`);
+  // Fresh doc for this session (clears any stale offer/answer/ICE from before).
+  setDoc(rtcRef,{ session:sess, ts:Date.now() }).catch(()=>{});
+  try{ livePeer=new RTCPeerConnection({ iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] }); }
+  catch(e){ setLiveStatus('This phone can’t do live video.', false); return; }
+  livePeer.addTransceiver('video',{ direction:'recvonly' });
+  livePeer.onicecandidate=(e)=>{ if(e.candidate){ setDoc(rtcRef,{ iceP:arrayUnion(JSON.stringify(e.candidate.toJSON())) },{merge:true}).catch(()=>{}); } };
+  livePeer.ontrack=(e)=>{ const v=$('liveVideo'); if(v && e.streams && e.streams[0]){ v.srcObject=e.streams[0]; v.play&&v.play().catch(()=>{}); setLiveStatus(null); } };
+  livePeer.onconnectionstatechange=()=>{ if(!livePeer) return; const s=livePeer.connectionState;
+    if(s==='connected') setLiveStatus(null);
+    else if(s==='failed') setLiveStatus('Couldn’t connect. Put this phone on the booth’s Wi-Fi and try again.', false); };
+  // Read the booth's offer + ICE.
+  liveUnsub=onSnapshot(rtcRef, async (snap)=>{
+    const d=snap.exists()?snap.data():null; if(!d||d.session!==liveSession||!livePeer) return;
+    if(d.state==='unavailable'){ setLiveStatus('The booth camera isn’t running right now.', false); return; }
+    if(d.offer && !liveOffered){ liveOffered=true;
+      try{ await livePeer.setRemoteDescription(d.offer); const ans=await livePeer.createAnswer(); await livePeer.setLocalDescription(ans);
+        await setDoc(rtcRef,{ answer:{type:ans.type,sdp:ans.sdp} },{merge:true}); }
+      catch(err){ console.warn('answer failed',err); }
+    }
+    if(Array.isArray(d.iceB)) for(const c of d.iceB){ if(liveSeen.has(c))continue; liveSeen.add(c); try{ await livePeer.addIceCandidate(JSON.parse(c)); }catch(_){} }
+  }, ()=>{});
+  // Ask the booth to start, then keep the encode alive with silent pings.
+  sendCmd({action:'liveStart', sessionId:sess});
+  clearInterval(livePing); livePing=setInterval(()=>sendCmd({action:'livePing', sessionId:sess},{silent:true}), 4000);
+  clearTimeout(liveTimeout); liveTimeout=setTimeout(()=>{ if(livePeer && livePeer.connectionState!=='connected') setLiveStatus('Still connecting… make sure this phone is on the booth’s Wi-Fi.', false); }, 13000);
+}
+function closeLiveView(){
+  if(liveSession) sendCmd({action:'liveStop', sessionId:liveSession});
+  clearInterval(livePing); livePing=null; clearTimeout(liveTimeout); liveTimeout=null;
+  if(liveUnsub){ try{liveUnsub();}catch(_){} liveUnsub=null; }
+  if(livePeer){ try{livePeer.close();}catch(_){} livePeer=null; }
+  const v=$('liveVideo'); if(v){ try{ v.srcObject=null; }catch(_){} }
+  liveSession=null; liveOffered=false;
+  $('liveOverlay').classList.remove('show');
+}
+
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── Bootstrap — runs last, after every function + state declaration is initialized ──
+const fromUrl=parsePair(location.href);
+if (fromUrl){ savePair(fromUrl); history.replaceState(null,'',location.pathname); connect(fromUrl); }
+else showScan(loadPair());
 </script>
 </body>
 </html>
