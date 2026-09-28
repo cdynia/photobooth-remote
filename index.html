@@ -107,6 +107,20 @@
   .btn.info { color:var(--info); }
   .btn.go { color:var(--ok); }
 
+  /* Last-strip panel — finish the previous guest while a new session runs */
+  .lastsess { flex:0 0 auto; margin-top:12px; background:var(--surface); border:1px solid var(--hair); border-radius:16px; padding:11px 12px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow); }
+  .lastsess .ls-thumb { width:44px; height:66px; border-radius:8px; object-fit:cover; background:var(--sunken); border:1px solid var(--hair); flex:0 0 auto; cursor:zoom-in; }
+  .lastsess .ls-info { min-width:0; flex:1; }
+  .lastsess .ls-t { font-weight:800; font-size:0.9rem; letter-spacing:-0.01em; }
+  .lastsess .ls-s { color:var(--faint); font-size:0.7rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lastsess .ls-btns { display:flex; gap:8px; flex:0 0 auto; }
+  .lastsess .ls-btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface-2); color:var(--ink); border-radius:12px;
+    padding:9px 13px; font-family:inherit; font-weight:700; font-size:0.82rem; display:flex; align-items:center; gap:6px; cursor:pointer; box-shadow:var(--shadow); }
+  .lastsess .ls-btn:active { transform:translateY(1px); }
+  .lastsess .ls-btn svg { width:16px; height:16px; }
+  .lastsess .ls-btn.print { color:var(--info); } .lastsess .ls-btn.text { color:var(--ok); }
+  .lastsess .ls-btn:disabled { opacity:0.4; cursor:not-allowed; box-shadow:none; }
+
   .foot { display:flex; align-items:center; justify-content:space-between; padding:14px 4px 2px; }
   .foot .link { appearance:none; border:none; background:none; color:var(--faint); font-size:0.76rem; font-weight:600; cursor:pointer; padding:6px 2px; }
   .foot .v { color:var(--faint); font-size:0.68rem; font-variant-numeric:tabular-nums; }
@@ -211,6 +225,20 @@
           <button class="btn" id="retakeBtn" style="display:none;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Retake</span></button>
         </div>
         <button class="btn hidden" id="closeBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="t">Close booth</span></button>
+      </div>
+
+      <!-- Last strip — persists after the guest leaves so you can print/text it
+           while the booth is already running the next session -->
+      <div class="lastsess hidden" id="lastSess">
+        <img class="ls-thumb" id="lsThumb" alt="Last strip">
+        <div class="ls-info">
+          <div class="ls-t">Last strip</div>
+          <div class="ls-s" id="lsSub">Finish it while the booth is free</div>
+        </div>
+        <div class="ls-btns">
+          <button class="ls-btn print" id="lsPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg>Print</button>
+          <button class="ls-btn text" id="lsText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Text</button>
+        </div>
       </div>
 
       <div class="foot"><button class="link" id="switchBtn">Switch booth</button><button class="link" id="closeLink">Close booth</button><button class="link" id="endLink" style="color:var(--danger);">End event</button></div>
@@ -378,16 +406,20 @@ function stopScan(){ scanning=false; if(scanStream){scanStream.getTracks().forEa
 
 // Connect
 let statusUnsub=null,cur=null,lastAck=null,PAIR=null;
+let stripsUnsub=null, stripsCache=[];
 const ONLINE_MS=45000; const online=(d)=>d&&d.lastSeen&&(Date.now()-d.lastSeen)<ONLINE_MS;
 function connect(p){
   if(!p) return showScan(null);
   PAIR=p; showView('consoleView');
   if(statusUnsub){ try{statusUnsub();}catch(_){} }
+  // Reset + re-arm the live strips feed for THIS booth (may be a different event).
+  stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden');
   const {db}=fb();
   statusUnsub=onSnapshot(doc(db,'events',p.e,'remote',p.b), s=>render(s.exists()?s.data():null),
     err=>{ $('gate').innerHTML='Could not reach the booth.<br><span class="faint">'+(err.message||err)+'</span>'; showView('gate'); });
   clearInterval(connect._t); connect._t=setInterval(()=>{ if(cur!==null) render(cur); },5000);
   wire();
+  startStripsWatch();   // keep the strip feed hot the whole time we're connected
   toast('Connected — you’re in control');
 }
 
@@ -401,6 +433,7 @@ function setPrimary(which){ // 'start' | 'cancel' | 'reopen' | 'next'
 function render(d){
   cur=d;
   if (d&&d.token&&d.token!==PAIR.t){
+    stopStripsWatch(); $('lastSess').classList.add('hidden');
     $('gate').innerHTML='This remote link was <b>revoked</b>. On the booth open <b>Remote</b> again and scan the new code.<div style="margin-top:14px;"><button class="cta" id="rescanBtn">Scan new code</button></div>';
     showView('gate'); $('rescanBtn').onclick=()=>{ clearPair(); showScan(null); }; return;
   }
@@ -466,6 +499,7 @@ function render(d){
     else if(r==='unavailable') toast('Not available on this screen');
     else if(r==='error') toast('The booth couldn’t do that');
   }
+  updateLastSession();   // keep the bottom "Last strip" panel in sync with booth state
 }
 
 async function sendCmd(extra){
@@ -484,28 +518,63 @@ function wire(){
   $('printBtn').onclick=()=>{ if(!$('printBtn').disabled) openPrintSheet(); };
   $('textBtn').onclick=()=>{ if(!$('textBtn').disabled) openTextSheet(); };
   $('retakeBtn').onclick=()=>{ if(!$('retakeBtn').disabled){ sendCmd({action:'retake'}); toast('Retaking…'); } };
-  $('switchBtn').onclick=()=>{ if(statusUnsub) statusUnsub(); showScan(loadPair()); };
+  $('switchBtn').onclick=()=>{ if(statusUnsub) statusUnsub(); stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden'); showScan(loadPair()); };
   $('sheetCancelBtn').onclick=()=>$('startSheet').classList.remove('show');
   $('printCancelBtn').onclick=()=>$('printSheet').classList.remove('show');
   $('textCancelBtn').onclick=()=>$('textSheet').classList.remove('show');
   $('lightbox').onclick=()=>$('lightbox').classList.remove('show');
   $('viewStripsBtn').onclick=()=>{ if(!$('viewStripsBtn').disabled) openStripsSheet(); };
-  $('stripsCloseBtn').onclick=()=>{ $('stripsSheet').classList.remove('show'); if(stripsUnsub){stripsUnsub(); stripsUnsub=null;} };
+  $('stripsCloseBtn').onclick=()=>{ $('stripsSheet').classList.remove('show'); };   // keep the feed live for the Last-strip panel
   $('detailCloseBtn').onclick=()=>$('detailSheet').classList.remove('show');
   buildDialpad();
 }
 
-// ── Strips browser (reads Firestore live; delete/reprint go through the booth) ──
-let stripsUnsub=null, stripsCache=[];
-function openStripsSheet(){
-  $('stripsGrid').innerHTML='<div class="strips-empty">Loading…</div>';
-  $('stripsSheet').classList.add('show');
+// ── Strips feed (live, mirrors the booth's own ensureStripsWatcher) ──
+// One subscription runs the whole time we're connected — it powers BOTH the
+// View-Strips browser AND the persistent "Last strip" panel, so opening the
+// browser is instant and the last strip stays actionable after the guest leaves.
+function startStripsWatch(){
+  if (stripsUnsub || !PAIR) return;
   const {db}=fb();
-  if (stripsUnsub) stripsUnsub();
   stripsUnsub = onSnapshot(query(collection(db,'events',PAIR.e,'strips'), orderBy('takenAt','desc')), (snap)=>{
     stripsCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-    renderStrips();
-  }, ()=>{ $('stripsGrid').innerHTML='<div class="strips-empty">Couldn’t load strips.</div>'; });
+    if ($('stripsSheet').classList.contains('show')) renderStrips();
+    updateLastSession();
+  }, ()=>{ if ($('stripsSheet').classList.contains('show')) $('stripsGrid').innerHTML='<div class="strips-empty">Couldn’t load strips.</div>'; });
+}
+function stopStripsWatch(){ if(stripsUnsub){ try{stripsUnsub();}catch(_){} stripsUnsub=null; } }
+
+// Persistent bottom panel: the most recent completed strip, with Print + Text.
+// Lets the attendant finish the previous guest while the booth already runs the
+// next session — the whole point is a faster line. Reprint + text both work
+// regardless of what the booth is doing right now (reprintStrip command / the
+// sendStripSms function), so this never has to wait on the live preview.
+function updateLastSession(){
+  const el=$('lastSess'); const d=cur; const on=online(d); const s=stripsCache[0];
+  // Hide when there's nothing to act on, the booth is offline, or the booth is
+  // still showing THIS exact strip on its preview (the hero already offers it).
+  const samePreview = d && d.activity==='preview' && d.lastStripId && s && d.lastStripId===s.id;
+  if (!s || !on || samePreview){ el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const url = s.stripUrl||s.thumbUrl||'';
+  const th=$('lsThumb');
+  if (th.dataset.src!==url){ th.dataset.src=url; th.src=url; th.onerror=()=>{ th.style.opacity=0.2; }; }
+  th.onclick=()=>{ if(url){ $('lbImg').src=url; $('lightbox').classList.add('show'); } };
+  const canPrint = d.printEnabled!==false;
+  const canText  = !!d.smsEnabled;
+  $('lsSub').textContent = (canPrint||canText) ? 'Finish it while the booth is free' : 'Booth output is off for this event';
+  $('lsPrint').style.display = canPrint?'':'none';
+  $('lsText').style.display  = canText?'':'none';
+  $('lsPrint').disabled = !canPrint;
+  $('lsText').disabled  = !canText;
+  $('lsPrint').onclick = ()=>{ if(!$('lsPrint').disabled) openPrintSheet(s.id); };
+  $('lsText').onclick  = ()=>{ if(!$('lsText').disabled) openTextSheet(s.id); };
+}
+function openStripsSheet(){
+  $('stripsSheet').classList.add('show');
+  startStripsWatch();
+  if (stripsCache.length) renderStrips();
+  else $('stripsGrid').innerHTML='<div class="strips-empty">Loading…</div>';
 }
 function renderStrips(){
   $('stripsCount').textContent = stripsCache.length ? `· ${stripsCache.length}` : '';
@@ -559,11 +628,14 @@ function openStartSheet(){
   $('startSheet').classList.add('show');
 }
 
-// Print sheet
-let copies=1;
-function openPrintSheet(){
-  // Suggest one copy per detected person (same nudge as the booth's copies screen).
-  const faces = (cur && Number(cur.faces)) || 0;
+// Print sheet — with a stripId it REPRINTS that past strip (reprintStrip); with
+// no id it prints whatever's on the booth's live preview (print).
+let copies=1, printTargetStrip=null;
+function openPrintSheet(stripId){
+  printTargetStrip = stripId || null;
+  // Suggest one copy per detected person — only meaningful for the live strip
+  // (a past strip has no face count published).
+  const faces = (!printTargetStrip && cur && Number(cur.faces)) || 0;
   copies = faces >= 1 ? Math.min(faces, 10) : 1;
   $('pN').textContent = copies;
   const note = $('facesNote');
@@ -572,7 +644,12 @@ function openPrintSheet(){
   $('printSheet').classList.add('show');
   $('pMinus').onclick=()=>{ copies=Math.max(1,copies-1); $('pN').textContent=copies; };
   $('pPlus').onclick=()=>{ copies=Math.min(10,copies+1); $('pN').textContent=copies; };
-  $('printGoBtn').onclick=()=>{ $('printSheet').classList.remove('show'); sendCmd({action:'print',copies}); toast(copies>1?`Printing ${copies}…`:'Printing…'); };
+  $('printGoBtn').onclick=()=>{
+    $('printSheet').classList.remove('show');
+    if (printTargetStrip) sendCmd({action:'reprintStrip', stripId:printTargetStrip, copies});
+    else sendCmd({action:'print', copies});
+    toast(copies>1?`Printing ${copies}…`:'Printing…');
+  };
 }
 
 // Text sheet — real phone dialpad
