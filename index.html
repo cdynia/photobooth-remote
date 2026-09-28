@@ -82,6 +82,10 @@
   .detail-img { width:100%; max-height:50vh; object-fit:contain; border-radius:12px; background:var(--sunken); margin-bottom:14px; }
   .metaline { display:flex; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
   .meta { font-size:0.78rem; color:var(--dim); } .meta b { color:var(--ink); font-weight:700; }
+  .health { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .hchip { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:var(--surface-2); border:1px solid var(--hair); font-size:0.7rem; font-weight:700; color:var(--dim); }
+  .hchip .hd { width:7px; height:7px; border-radius:50%; background:var(--faint); }
+  .hchip.ok .hd { background:var(--ok); } .hchip.bad .hd { background:var(--danger); } .hchip.bad { color:var(--danger); }
 
   /* Actions — fill remaining height, primary is confident */
   .actions { flex:1; display:flex; flex-direction:column; gap:12px; margin-top:16px; min-height:0; }
@@ -193,6 +197,7 @@
           </div>
         </div>
         <div class="metaline"><span class="meta">Prints <b id="printsV">—</b></span><span class="meta">Booth <b id="verV">—</b></span></div>
+        <div class="health" id="health"></div>
       </div>
 
       <div class="actions">
@@ -203,6 +208,7 @@
         <div class="grid2" id="previewRow">
           <button class="btn info" id="printBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg><span class="t">Print</span></button>
           <button class="btn go" id="textBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="t">Text</span></button>
+          <button class="btn" id="retakeBtn" style="display:none;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Retake</span></button>
         </div>
         <button class="btn hidden" id="closeBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="t">Close booth</span></button>
       </div>
@@ -382,6 +388,7 @@ function connect(p){
     err=>{ $('gate').innerHTML='Could not reach the booth.<br><span class="faint">'+(err.message||err)+'</span>'; showView('gate'); });
   clearInterval(connect._t); connect._t=setInterval(()=>{ if(cur!==null) render(cur); },5000);
   wire();
+  toast('Connected — you’re in control');
 }
 
 function setPrimary(which){ // 'start' | 'cancel' | 'reopen' | 'next'
@@ -439,6 +446,14 @@ function render(d){
   $('previewRow').classList.toggle('hidden', act!=='preview');
   $('printBtn').disabled=!on||(d&&d.printEnabled===false);
   $('textBtn').disabled=!on||!stripReady||!(d&&d.smsEnabled);
+  // Retake — only if the event opted in; on the preview.
+  const showRetake = !!(d&&d.retakeAllowed) && act==='preview';
+  $('retakeBtn').style.display = showRetake ? '' : 'none';
+  $('retakeBtn').disabled = !on;
+  // Booth health chips (glanceable across the room).
+  const h = (d&&d.health)||{};
+  const chip=(label,val)=> val==null ? '' : `<span class="hchip ${val?'ok':'bad'}"><span class="hd"></span>${label} ${val?'OK':'!'}</span>`;
+  $('health').innerHTML = on ? (chip('Camera',h.camera)+chip('Network',h.network)+chip('Printer',h.printer)) : '';
   // View strips: available whenever the booth is online and not mid-capture.
   $('viewStripsBtn').disabled = !on || act==='capturing' || act==='composing';
   const canClose=on&&(act==='idle'||act==='preview');
@@ -468,6 +483,7 @@ function wire(){
   $('startBtn').onclick=()=>{ if(!$('startBtn').disabled) openStartSheet(); };
   $('printBtn').onclick=()=>{ if(!$('printBtn').disabled) openPrintSheet(); };
   $('textBtn').onclick=()=>{ if(!$('textBtn').disabled) openTextSheet(); };
+  $('retakeBtn').onclick=()=>{ if(!$('retakeBtn').disabled){ sendCmd({action:'retake'}); toast('Retaking…'); } };
   $('switchBtn').onclick=()=>{ if(statusUnsub) statusUnsub(); showScan(loadPair()); };
   $('sheetCancelBtn').onclick=()=>$('startSheet').classList.remove('show');
   $('printCancelBtn').onclick=()=>$('printSheet').classList.remove('show');
