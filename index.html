@@ -70,6 +70,16 @@
   .pill .dot.offline { background:var(--danger); }
   .pill.busy { color:var(--gold); } .pill.busy .dot { background:var(--gold); box-shadow:0 0 8px color-mix(in srgb,var(--gold) 60%, transparent); }
   .pill.ready { color:var(--ok); } .pill.closed,.pill.off { color:var(--danger); }
+  .viewstrips { display:inline-flex; align-items:center; gap:7px; margin-top:10px; margin-left:8px; padding:6px 12px; border-radius:999px;
+    background:transparent; border:1px solid var(--hair-2); color:var(--dim); font-weight:700; font-size:0.76rem; cursor:pointer; vertical-align:middle; }
+  .viewstrips svg { width:15px; height:15px; }
+  .viewstrips:disabled { opacity:0.35; cursor:not-allowed; }
+  /* Strips browser */
+  .strips-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .strip-cell { border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; background:var(--sunken); aspect-ratio:2/3; }
+  .strip-cell img { width:100%; height:100%; object-fit:cover; display:block; }
+  .strips-empty { color:var(--dim); text-align:center; padding:40px 10px; }
+  .detail-img { width:100%; max-height:50vh; object-fit:contain; border-radius:12px; background:var(--sunken); margin-bottom:14px; }
   .metaline { display:flex; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
   .meta { font-size:0.78rem; color:var(--dim); } .meta b { color:var(--ink); font-weight:700; }
 
@@ -179,6 +189,7 @@
             <div class="ev" id="evName">Booth</div>
             <div class="venue" id="venue"></div>
             <span class="pill" id="pill"><span class="dot" id="dot"></span><span id="pillTxt">—</span></span>
+            <button class="viewstrips" id="viewStripsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg><span>View strips</span></button>
           </div>
         </div>
         <div class="metaline"><span class="meta">Prints <b id="printsV">—</b></span><span class="meta">Booth <b id="verV">—</b></span></div>
@@ -234,7 +245,9 @@
 
   <!-- Print sheet -->
   <div class="ov" id="printSheet"><div class="sheet"><div class="grab"></div>
-    <h3>Print the strip</h3><div class="lbl">Copies</div>
+    <h3>Print the strip</h3>
+    <div class="muted" id="facesNote" style="display:none;"></div>
+    <div class="lbl">Copies</div>
     <div class="stepper"><button id="pMinus">−</button><span class="n" id="pN">1</span><button id="pPlus">+</button></div>
     <button class="cta" id="printGoBtn" style="margin-top:16px;">Print now</button>
     <button class="cta sub" id="printCancelBtn" style="margin-top:10px;">Back</button>
@@ -256,13 +269,31 @@
     <button class="cta sub" id="endCancelBtn" style="margin-top:10px;">Back</button>
   </div></div>
 
+  <!-- Strips browser sheet -->
+  <div class="ov" id="stripsSheet"><div class="sheet"><div class="grab"></div>
+    <h3>Event strips <span id="stripsCount" class="faint" style="font-weight:600;"></span></h3>
+    <div class="muted">Tap a strip to reprint or delete it.</div>
+    <div id="stripsGrid" style="margin-top:14px;"></div>
+    <button class="cta sub" id="stripsCloseBtn" style="margin-top:14px;">Close</button>
+  </div></div>
+
+  <!-- Single strip detail sheet -->
+  <div class="ov" id="detailSheet"><div class="sheet"><div class="grab"></div>
+    <img class="detail-img" id="detailImg" alt="Strip">
+    <div class="lbl">Copies</div>
+    <div class="stepper"><button id="dMinus">−</button><span class="n" id="dN">1</span><button id="dPlus">+</button></div>
+    <button class="cta" id="detailPrintBtn" style="margin-top:14px;background:var(--info);color:#04121e;">Reprint</button>
+    <button class="cta" id="detailDelBtn" style="margin-top:10px;background:var(--danger);color:#fff;">Delete strip</button>
+    <button class="cta sub" id="detailCloseBtn" style="margin-top:10px;">Back</button>
+  </div></div>
+
   <div class="lb" id="lightbox"><img id="lbImg" alt="Strip"></div>
   <div class="toast" id="toast"></div>
 
 <script src="jsQR.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, setDoc, collection, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 
 const firebaseConfig = {
@@ -408,6 +439,8 @@ function render(d){
   $('previewRow').classList.toggle('hidden', act!=='preview');
   $('printBtn').disabled=!on||(d&&d.printEnabled===false);
   $('textBtn').disabled=!on||!stripReady||!(d&&d.smsEnabled);
+  // View strips: available whenever the booth is online and not mid-capture.
+  $('viewStripsBtn').disabled = !on || act==='capturing' || act==='composing';
   const canClose=on&&(act==='idle'||act==='preview');
   $('closeLink').style.visibility=canClose?'visible':'hidden';
   $('closeLink').textContent=act==='closed'?'':'Close booth';
@@ -440,7 +473,44 @@ function wire(){
   $('printCancelBtn').onclick=()=>$('printSheet').classList.remove('show');
   $('textCancelBtn').onclick=()=>$('textSheet').classList.remove('show');
   $('lightbox').onclick=()=>$('lightbox').classList.remove('show');
+  $('viewStripsBtn').onclick=()=>{ if(!$('viewStripsBtn').disabled) openStripsSheet(); };
+  $('stripsCloseBtn').onclick=()=>{ $('stripsSheet').classList.remove('show'); if(stripsUnsub){stripsUnsub(); stripsUnsub=null;} };
+  $('detailCloseBtn').onclick=()=>$('detailSheet').classList.remove('show');
   buildDialpad();
+}
+
+// ── Strips browser (reads Firestore live; delete/reprint go through the booth) ──
+let stripsUnsub=null, stripsCache=[];
+function openStripsSheet(){
+  $('stripsGrid').innerHTML='<div class="strips-empty">Loading…</div>';
+  $('stripsSheet').classList.add('show');
+  const {db}=fb();
+  if (stripsUnsub) stripsUnsub();
+  stripsUnsub = onSnapshot(query(collection(db,'events',PAIR.e,'strips'), orderBy('takenAt','desc')), (snap)=>{
+    stripsCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderStrips();
+  }, ()=>{ $('stripsGrid').innerHTML='<div class="strips-empty">Couldn’t load strips.</div>'; });
+}
+function renderStrips(){
+  $('stripsCount').textContent = stripsCache.length ? `· ${stripsCache.length}` : '';
+  if (!stripsCache.length){ $('stripsGrid').innerHTML='<div class="strips-empty">No strips at this event yet.</div>'; return; }
+  $('stripsGrid').innerHTML = '<div class="strips-grid">'+stripsCache.map(s=>{
+    const u = esc(s.thumbUrl||s.stripUrl||''); return `<div class="strip-cell" data-id="${esc(s.id)}"><img src="${u}" alt="" loading="lazy" onerror="this.style.opacity=0.2"></div>`;
+  }).join('')+'</div>';
+  $('stripsGrid').querySelectorAll('.strip-cell').forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
+}
+let detailId=null, detailCopies=1;
+function openDetail(id){
+  const s = stripsCache.find(x=>x.id===id); if(!s) return;
+  detailId=id; detailCopies=1; $('dN').textContent='1';
+  $('detailImg').src = s.stripUrl||s.thumbUrl||'';
+  const canPrint = cur && cur.printEnabled!==false;
+  $('detailPrintBtn').style.display = canPrint ? '' : 'none';
+  $('dMinus').onclick=()=>{ detailCopies=Math.max(1,detailCopies-1); $('dN').textContent=detailCopies; };
+  $('dPlus').onclick =()=>{ detailCopies=Math.min(10,detailCopies+1); $('dN').textContent=detailCopies; };
+  $('detailPrintBtn').onclick=()=>{ sendCmd({action:'reprintStrip',stripId:id,copies:detailCopies}); toast(detailCopies>1?`Reprinting ${detailCopies}…`:'Reprinting…'); $('detailSheet').classList.remove('show'); };
+  $('detailDelBtn').onclick=()=>{ sendCmd({action:'deleteStrip',stripId:id}); toast('Deleting…'); $('detailSheet').classList.remove('show'); };
+  $('detailSheet').classList.add('show');
 }
 
 // Start sheet
@@ -471,7 +541,15 @@ function sel(g,el){ $(g).querySelectorAll('.opt').forEach(o=>o.classList.remove(
 
 // Print sheet
 let copies=1;
-function openPrintSheet(){ copies=1; $('pN').textContent='1'; $('printSheet').classList.add('show');
+function openPrintSheet(){
+  // Suggest one copy per detected person (same nudge as the booth's copies screen).
+  const faces = (cur && Number(cur.faces)) || 0;
+  copies = faces >= 1 ? Math.min(faces, 10) : 1;
+  $('pN').textContent = copies;
+  const note = $('facesNote');
+  if (faces >= 1){ note.style.display=''; note.textContent = `We detected ${faces} ${faces===1?'person':'people'} — suggested ${copies} ${copies===1?'copy':'copies'}.`; }
+  else note.style.display='none';
+  $('printSheet').classList.add('show');
   $('pMinus').onclick=()=>{ copies=Math.max(1,copies-1); $('pN').textContent=copies; };
   $('pPlus').onclick=()=>{ copies=Math.min(10,copies+1); $('pN').textContent=copies; };
   $('printGoBtn').onclick=()=>{ $('printSheet').classList.remove('show'); sendCmd({action:'print',copies}); toast(copies>1?`Printing ${copies}…`:'Printing…'); };
