@@ -2,16 +2,16 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0d0f13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Booth Remote">
+<meta name="apple-mobile-web-app-title" content="BoothPilot">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<title>CyberColt Booth Remote</title>
+<title>BoothPilot · CyberColt Booth Remote</title>
 <style>
   :root {
     --bg:#0d0f13; --surface:#161920; --surface-2:#1e222b; --sunken:#0a0c10;
@@ -29,8 +29,8 @@
     --accent:#8bb327; --accent-ink:#ffffff; --gold:#b8942a;
     --shadow:0 1px 2px rgba(20,25,35,0.06), 0 10px 30px rgba(20,25,35,0.1);
   }
-  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { margin:0; height:100%; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html,body { margin:0; height:100%; touch-action:manipulation; overscroll-behavior:none; }
   body {
     background:var(--bg); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
@@ -51,12 +51,15 @@
 
   /* Status / hero */
   .hero { background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
-  .hero-row { display:flex; gap:16px; align-items:center; }
-  .thumb { width:96px; aspect-ratio:2/3; flex:0 0 auto; border-radius:12px; background:var(--sunken);
-    border:1px solid var(--hair); overflow:hidden; display:grid; place-items:center; }
-  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-  .thumb .ph { color:var(--faint); }
+  .hero-row { display:flex; gap:16px; align-items:stretch; }
+  .thumb { width:128px; flex:0 0 auto; border-radius:12px; background:var(--sunken);
+    border:1px solid var(--hair); overflow:hidden; display:grid; place-items:center; min-height:180px; }
+  .thumb img { width:100%; height:100%; max-height:240px; object-fit:contain; display:block; }
+  .thumb .ph { color:var(--faint); display:grid; place-items:center; gap:8px; }
   .thumb .ph svg { width:34px; height:34px; }
+  .thumb .ph .cap { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; }
+  .spinner { width:30px; height:30px; border-radius:50%; border:3px solid var(--hair-2); border-top-color:var(--accent); animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
   .hero-main { min-width:0; flex:1; }
   .hero .ev { font-size:1.32rem; font-weight:800; letter-spacing:-0.02em; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .hero .venue { color:var(--faint); font-size:0.78rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -72,7 +75,7 @@
 
   /* Actions — fill remaining height, primary is confident */
   .actions { flex:1; display:flex; flex-direction:column; gap:12px; margin-top:16px; min-height:0; }
-  .primary { flex:1.7; min-height:96px; }
+  .primary { flex:1.15; min-height:76px; }
   .grid2 { display:flex; gap:12px; flex:1; min-height:0; }
   .grid2 .btn { flex:1; }
   .btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface); color:var(--ink); border-radius:18px;
@@ -85,7 +88,7 @@
   .btn .s { font-size:0.66rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); }
   .btn.accent { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
   .btn.accent .s { color:color-mix(in srgb,var(--accent-ink) 62%, transparent); }
-  .btn.accent .t { font-size:1.4rem; font-weight:800; }
+  .btn.accent .t { font-size:1.15rem; font-weight:800; }
   .btn.danger { color:var(--danger); }
   .btn.info { color:var(--info); }
   .btn.go { color:var(--ok); }
@@ -122,14 +125,16 @@
   .opt .tick { width:20px; height:20px; border-radius:50%; border:2px solid var(--hair-2); flex:0 0 auto; }
   .opt.sel .tick { border-color:var(--accent); background:var(--accent); }
   .opt .name { font-weight:700; } .opt .meta { color:var(--faint); font-size:0.74rem; margin-left:auto; }
+  .bdthumb { width:52px; height:35px; border-radius:8px; object-fit:cover; flex:0 0 auto; border:1px solid var(--hair); background:var(--sunken); }
+  .bdthumb.none { display:grid; place-items:center; color:var(--faint); font-weight:700; }
 
   /* Dialer */
   .dialdisp { text-align:center; font-size:1.9rem; font-weight:800; letter-spacing:0.04em; font-variant-numeric:tabular-nums;
     padding:14px; min-height:64px; color:var(--ink); }
   .dialdisp .plc { color:var(--faint); font-weight:600; }
-  .dial { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-  .dial button { aspect-ratio:1.4; border:1px solid var(--hair); background:var(--surface-2); color:var(--ink);
-    border-radius:16px; font-size:1.6rem; font-weight:700; cursor:pointer; display:grid; place-items:center; }
+  .dial { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; justify-items:center; }
+  .dial button { aspect-ratio:1; width:100%; max-width:74px; border:1px solid var(--hair); background:var(--surface-2); color:var(--ink);
+    border-radius:50%; font-size:1.6rem; font-weight:700; cursor:pointer; display:grid; place-items:center; }
   .dial button:active { background:var(--sunken); }
   .dial .del svg { width:26px; height:26px; }
 
@@ -150,7 +155,7 @@
 <body>
   <div class="app">
     <div class="bar">
-      <div class="wm"><b>Booth&nbsp;Remote</b><span class="tag">CyberColt</span></div>
+      <div class="wm"><b>BoothPilot</b><span class="tag">by CyberColt</span></div>
       <div style="display:flex;gap:8px;">
         <button class="ghosticon" id="refreshBtn" aria-label="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
         <button class="ghosticon" id="themeBtn" aria-label="Theme"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
@@ -175,6 +180,7 @@
         <button class="btn accent primary" id="startBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Start session</span><span class="s">tap to begin for the guest</span></button>
         <button class="btn danger primary hidden" id="cancelPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="t">Cancel session</span></button>
         <button class="btn go primary hidden" id="reopenPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Reopen booth</span></button>
+        <button class="btn accent primary hidden" id="nextPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 5l7 7-7 7M4 12h16"/></svg><span class="t">Ready for next guest</span><span class="s">clears the booth for the next session</span></button>
         <div class="grid2" id="previewRow">
           <button class="btn info" id="printBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg><span class="t">Print</span></button>
           <button class="btn go" id="textBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="t">Text</span></button>
@@ -272,6 +278,12 @@ $('themeBtn').onclick=()=>{ theme=theme==='dark'?'light':'dark'; try{localStorag
 $('refreshBtn').onclick=()=>location.reload();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Lock out pinch / double-tap zoom (iOS ignores maximum-scale) so the control
+// surface stays put like a real remote.
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault(), { passive:false });
+let _lastTouch = 0;
+document.addEventListener('touchend', e => { const now = Date.now(); if (now - _lastTouch <= 320) e.preventDefault(); _lastTouch = now; }, { passive:false });
 
 const PAIR_KEY='ccpb_remote_pair';
 const savePair=(p)=>{ try{localStorage.setItem(PAIR_KEY,JSON.stringify(p));}catch(_){} };
@@ -333,10 +345,11 @@ function connect(p){
   wire();
 }
 
-function setPrimary(which){ // 'start' | 'cancel' | 'reopen' | none
+function setPrimary(which){ // 'start' | 'cancel' | 'reopen' | 'next'
   $('startBtn').classList.toggle('hidden', which!=='start');
   $('cancelPrimary').classList.toggle('hidden', which!=='cancel');
   $('reopenPrimary').classList.toggle('hidden', which!=='reopen');
+  $('nextPrimary').classList.toggle('hidden', which!=='next');
 }
 
 function render(d){
@@ -362,17 +375,27 @@ function render(d){
   $('printsV').textContent=on?prints:'—';
   $('verV').textContent=(d&&d.appVersion)?('v'+d.appVersion):'—';
 
-  // strip thumbnail
+  // strip thumbnail — image when ready, spinner while it's building/uploading.
   const strip=(act==='preview'&&d&&d.lastStripUrl)?d.lastStripUrl:null;
+  const receiving = on && (act==='composing' || (act==='preview' && !strip));
   const thumb=$('thumb');
-  if (strip){ thumb.innerHTML=`<img src="${strip}" alt="Strip">`; thumb.style.cursor='zoom-in'; thumb.onclick=()=>{ $('lbImg').src=strip; $('lightbox').classList.add('show'); }; }
-  else { thumb.innerHTML='<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-1M17 21v-1"/></svg></div>'; thumb.style.cursor='default'; thumb.onclick=null; }
+  if (strip){
+    if (thumb.dataset.src !== strip) { thumb.dataset.src = strip; thumb.innerHTML=`<img src="${strip}" alt="Strip">`; }
+    thumb.style.cursor='zoom-in'; thumb.onclick=()=>{ $('lbImg').src=strip; $('lightbox').classList.add('show'); };
+  } else {
+    thumb.dataset.src='';
+    thumb.onclick=null; thumb.style.cursor='default';
+    thumb.innerHTML = receiving
+      ? '<div class="ph"><div class="spinner"></div><span class="cap">Receiving strip…</span></div>'
+      : '<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-1M17 21v-1"/></svg></div>';
+  }
 
   // contextual actions
-  setPrimary(act==='closed'?'reopen':(act==='capturing'||act==='composing')?'cancel':'start');
+  setPrimary(act==='closed'?'reopen':(act==='capturing'||act==='composing')?'cancel':act==='preview'?'next':'start');
   $('startBtn').disabled=!on||act!=='idle';
   $('cancelPrimary').disabled=!on;
   $('reopenPrimary').disabled=!on;
+  $('nextPrimary').disabled=!on;
   const stripReady=!!(d&&d.lastStripId)&&act==='preview';
   $('previewRow').classList.toggle('hidden', act!=='preview');
   $('printBtn').disabled=!on||(d&&d.printEnabled===false);
@@ -396,6 +419,7 @@ async function sendCmd(extra){
 function wire(){
   $('cancelPrimary').onclick=()=>{ if(!$('cancelPrimary').disabled){ sendCmd({action:'cancel'}); toast('Cancelling…'); } };
   $('reopenPrimary').onclick=()=>{ if(!$('reopenPrimary').disabled){ sendCmd({action:'reopen'}); toast('Reopening…'); } };
+  $('nextPrimary').onclick=()=>{ if(!$('nextPrimary').disabled){ sendCmd({action:'reset'}); toast('Ready for next guest'); } };
   $('closeLink').onclick=()=>{ sendCmd({action:'close'}); toast('Closing booth…'); };
   $('endLink').onclick=()=>$('endSheet').classList.add('show');
   $('endCancelBtn').onclick=()=>$('endSheet').classList.remove('show');
@@ -422,8 +446,8 @@ function openStartSheet(){
   if(needTpl){ $('tplOpts').innerHTML=tpls.map(t=>`<div class="opt" data-tpl="${esc(t.id)}"><span class="tick"></span><span class="name">${esc(t.name)}</span><span class="meta">${esc(t.size||'')}</span></div>`).join('');
     $('tplOpts').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{pickTpl=o.dataset.tpl; sel('tplOpts',o);}); }
   $('bdGroup').classList.toggle('hidden',!needBd);
-  if(needBd){ let h=''; if(d.backdropSmart) h+=`<div class="opt" data-bd="__none__"><span class="tick"></span><span class="name">Keep it real</span><span class="meta">no AI</span></div>`;
-    h+=bds.map(b=>`<div class="opt" data-bd="${esc(b.key)}"><span class="tick"></span><span class="name">${esc(b.name)}</span></div>`).join('');
+  if(needBd){ let h=''; if(d.backdropSmart) h+=`<div class="opt" data-bd="__none__"><span class="tick"></span><span class="bdthumb none">—</span><span class="name">Keep it real</span><span class="meta">no AI</span></div>`;
+    h+=bds.map(b=>`<div class="opt" data-bd="${esc(b.key)}"><span class="tick"></span>${b.preview?`<img class="bdthumb" src="${esc(b.preview)}" alt="" loading="lazy">`:'<span class="bdthumb none">?</span>'}<span class="name">${esc(b.name)}</span></div>`).join('');
     $('bdOpts').innerHTML=h; $('bdOpts').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{pickBd=o.dataset.bd; sel('bdOpts',o);}); }
   if(needTpl) sel('tplOpts',$('tplOpts').firstElementChild);
   if(needBd){ const f=$('bdOpts').firstElementChild; sel('bdOpts',f); pickBd=f.dataset.bd; }
