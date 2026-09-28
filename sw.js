@@ -2,8 +2,8 @@
 // Network-first for the app shell so updates land immediately; falls back to the
 // cache when offline. Firebase SDK + Firestore traffic are never cached (always
 // network) so booth status is live.
-const CACHE = 'ccpb-remote-v3';
-const SHELL = ['./', './index.html', './jsQR.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const CACHE = 'ccpb-remote-v4';
+const SHELL = ['./', './index.html', './jsQR.js', './favicon.svg', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

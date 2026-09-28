@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
@@ -9,396 +9,373 @@
 <meta name="apple-mobile-web-app-title" content="Booth Remote">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <title>CyberColt Booth Remote</title>
 <style>
-  :root { --bg:#14181e; --panel:#1c2129; --panel2:#0f1216; --line:rgba(255,255,255,0.1); --ink:#f2f4ee; --dim:#aeb4bf; --fade:#6b7280; --lime:#acca32; --gold:#e5c353; --red:#e0685f; --green:#5b8c5a; }
+  :root {
+    --bg:#0e1116; --body:#1c2129; --body-edge:#2a303a; --screen:#0b1d16; --screen-ink:#8fe6b0;
+    --ink:#f2f4ee; --dim:#aeb4bf; --fade:#7b828d; --line:rgba(255,255,255,0.12);
+    --btn:#252b34; --btn-edge:#333b46; --btn-ink:#f2f4ee;
+    --lime:#acca32; --gold:#e5c353; --red:#e0685f; --green:#5b8c5a; --blue:#5aa0e0;
+  }
+  :root[data-theme="light"] {
+    --bg:#c9cdd4; --body:#eef1f5; --body-edge:#d7dbe1; --screen:#0b1d16; --screen-ink:#8fe6b0;
+    --ink:#1b1d22; --dim:#5a616b; --fade:#8a919b; --line:rgba(0,0,0,0.12);
+    --btn:#ffffff; --btn-edge:#d7dbe1; --btn-ink:#1b1d22;
+  }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; }
-  body { background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; display:flex; flex-direction:column; min-height:100%; padding:20px 16px calc(20px + env(safe-area-inset-bottom)); }
-  .wrap { width:100%; max-width:460px; margin:0 auto; flex:1; display:flex; flex-direction:column; }
-  .brand { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:20px; }
-  .brand .mark { width:34px; height:34px; border-radius:9px; background:var(--panel2); display:flex; align-items:center; justify-content:center; }
-  .brand .name { font-weight:900; font-size:1.05rem; letter-spacing:-0.02em; }
-  .brand .name small { display:block; font-weight:700; font-size:0.6rem; letter-spacing:0.24em; text-transform:uppercase; color:var(--gold); }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:16px; }
-  h2 { font-size:1.1rem; margin:0 0 6px; }
+  body { background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+         height:100dvh; overflow:hidden; display:flex; justify-content:center;
+         padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom)); }
+  /* The remote body: a physical-looking handset that fills the device height. */
+  .remote { width:100%; max-width:440px; background:linear-gradient(180deg,var(--body),var(--body-edge));
+            border:1px solid var(--line); border-radius:34px; padding:16px; display:flex; flex-direction:column; gap:12px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06); }
+  .top { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 6px; }
+  .brand { display:flex; align-items:center; gap:8px; font-weight:900; font-size:0.82rem; letter-spacing:-0.01em; }
+  .brand .g { color:var(--gold); font-weight:700; font-size:0.54rem; letter-spacing:0.22em; text-transform:uppercase; }
+  .iconbtn { appearance:none; border:1px solid var(--line); background:var(--btn); color:var(--dim); width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .iconbtn svg { width:18px; height:18px; }
+  /* LCD screen */
+  .screen { background:var(--screen); border-radius:16px; padding:14px 16px; border:1px solid rgba(0,0,0,0.4); box-shadow:inset 0 2px 10px rgba(0,0,0,0.5); }
+  .screen .l1 { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .screen .ev { color:#eafff2; font-weight:800; font-size:1.05rem; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .screen .stat { font-family:ui-monospace,monospace; font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--screen-ink); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .screen .dot { width:9px; height:9px; border-radius:50%; background:#3a4a42; }
+  .screen .dot.online { background:#57e08a; box-shadow:0 0 8px rgba(87,224,138,0.8); }
+  .screen .dot.offline { background:var(--red); }
+  .screen .l2 { margin-top:10px; display:flex; align-items:center; justify-content:space-between; }
+  .screen .badge { font-family:ui-monospace,monospace; font-weight:700; font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--screen-ink); }
+  .screen .sub { color:#5f7a6c; font-size:0.64rem; font-family:ui-monospace,monospace; }
+  /* Button pad — fills remaining height; buttons grow with the device. */
+  .pad { flex:1; display:flex; flex-direction:column; gap:10px; min-height:0; }
+  .rowpair { display:flex; gap:10px; flex:1; min-height:0; }
+  .key { flex:1; appearance:none; border:1px solid var(--btn-edge); background:linear-gradient(180deg,var(--btn),color-mix(in srgb,var(--btn) 88%, #000)); color:var(--btn-ink);
+         border-radius:18px; font-family:inherit; font-weight:800; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+         font-size:clamp(1rem,4.4vw,1.4rem); transition:transform 0.06s, filter 0.15s; box-shadow:0 3px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06); min-height:0; }
+  .key:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.25); }
+  .key svg { width:clamp(24px,7vw,34px); height:clamp(24px,7vw,34px); }
+  .key .sub { font-weight:600; font-size:0.62rem; letter-spacing:0.06em; text-transform:uppercase; opacity:0.7; }
+  .key:disabled { opacity:0.32; cursor:not-allowed; }
+  .key.start { background:linear-gradient(180deg,#bcd93f,#93b025); color:#14181e; border-color:#93b025; flex:2.2; }
+  .key.cancel { color:var(--red); }
+  .key.print { color:var(--blue); }
+  .key.text  { color:var(--green); }
+  .foot { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 4px; }
+  .link { appearance:none; border:none; background:none; color:var(--fade); font-size:0.72rem; font-weight:600; cursor:pointer; padding:8px; }
+  /* Pairing / scan */
+  .pairwrap { flex:1; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:6px; }
+  .card { background:var(--btn); border:1px solid var(--line); border-radius:18px; padding:20px; }
+  .card h2 { margin:0 0 6px; font-size:1.1rem; }
   .muted { color:var(--dim); font-size:0.88rem; line-height:1.5; }
-  .fade { color:var(--fade); font-size:0.72rem; }
-  button { font-family:inherit; }
-  .btn { appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:14px; padding:15px 18px; font-size:1rem; font-weight:700; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:9px; transition:transform 0.08s, opacity 0.15s; }
-  .btn:active { transform:scale(0.98); }
-  .btn svg { width:20px; height:20px; }
-  .btn.primary { background:var(--lime); color:#14181e; border-color:var(--lime); }
-  .btn.danger { background:transparent; color:var(--red); border-color:rgba(224,104,95,0.5); }
-  .btn.ghost { background:transparent; color:var(--dim); }
-  .btn:disabled { opacity:0.4; cursor:not-allowed; }
-  .row { display:flex; gap:10px; }
-  .stack > * + * { margin-top:12px; }
-  /* status */
-  .status-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-  .dot { width:11px; height:11px; border-radius:50%; background:var(--fade); flex:0 0 auto; }
-  .dot.online { background:var(--green); box-shadow:0 0 10px rgba(91,140,90,0.7); }
-  .dot.offline { background:var(--red); }
-  .online-txt { font-family:ui-monospace,monospace; font-size:0.66rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); }
-  .evname { font-weight:800; font-size:1.25rem; line-height:1.2; }
-  .evsub { color:var(--fade); font-size:0.78rem; margin-top:2px; }
-  .badge { display:inline-block; margin-top:14px; font-family:ui-monospace,monospace; font-weight:700; font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; padding:8px 14px; border-radius:999px; border:1px solid var(--line); color:var(--dim); }
-  .badge.idle { color:var(--lime); border-color:rgba(172,202,50,0.4); }
-  .badge.capturing,.badge.composing,.badge.preview { color:var(--gold); border-color:rgba(229,195,83,0.4); }
-  .badge.closed,.badge.unpaired,.badge.offline { color:var(--red); border-color:rgba(224,104,95,0.4); }
-  .metrics { display:flex; gap:10px; margin-top:16px; }
-  .metric { flex:1; background:var(--panel2); border-radius:12px; padding:12px; text-align:center; }
-  .metric .v { font-weight:800; font-size:1.1rem; }
-  .metric .l { color:var(--fade); font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:3px; }
-  /* scanner */
-  #video { width:100%; border-radius:16px; background:#000; aspect-ratio:1; object-fit:cover; display:block; }
-  .scan-frame { position:relative; }
-  .scan-frame .reticle { position:absolute; inset:14%; border:3px solid rgba(172,202,50,0.8); border-radius:18px; pointer-events:none; }
-  /* sheet */
-  .sheet-ov { position:fixed; inset:0; z-index:40; background:rgba(10,11,14,0.6); display:none; align-items:flex-end; }
+  .fade { color:var(--fade); font-size:0.74rem; }
+  .bigbtn { appearance:none; border:none; border-radius:14px; padding:16px; font-size:1rem; font-weight:800; cursor:pointer; width:100%; background:var(--lime); color:#14181e; display:flex; align-items:center; justify-content:center; gap:9px; }
+  .bigbtn.ghost { background:transparent; color:var(--dim); border:1px solid var(--line); }
+  .bigbtn svg { width:20px; height:20px; }
+  #video { width:100%; border-radius:14px; background:#000; aspect-ratio:1; object-fit:cover; display:block; }
+  .scan-frame { position:relative; margin-top:14px; }
+  .scan-frame .reticle { position:absolute; inset:14%; border:3px solid rgba(172,202,50,0.8); border-radius:16px; }
+  /* Sheet */
+  .sheet-ov { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,0.55); display:none; align-items:flex-end; }
   .sheet-ov.show { display:flex; }
-  .sheet { background:var(--panel); width:100%; max-width:460px; margin:0 auto; border-radius:22px 22px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto; }
-  .sheet h3 { margin:2px 0 4px; font-size:1.15rem; }
-  .opt-group { margin:14px 0; }
-  .opt-group .lbl { font-family:ui-monospace,monospace; font-size:0.62rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--fade); margin-bottom:8px; }
-  .opts { display:flex; flex-direction:column; gap:8px; }
-  .opt { display:flex; align-items:center; gap:12px; padding:13px 14px; border:1px solid var(--line); border-radius:12px; cursor:pointer; }
-  .opt.sel { border-color:var(--lime); background:rgba(172,202,50,0.08); }
-  .opt .tick { width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  .sheet { background:var(--body); width:100%; max-width:440px; margin:0 auto; border-radius:22px 22px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); max-height:90vh; overflow-y:auto; border:1px solid var(--line); }
+  .sheet h3 { margin:2px 0 10px; font-size:1.15rem; }
+  .opt { display:flex; align-items:center; gap:12px; padding:13px 14px; border:1px solid var(--line); border-radius:12px; cursor:pointer; margin-bottom:8px; }
+  .opt.sel { border-color:var(--lime); background:rgba(172,202,50,0.1); }
+  .opt .tick { width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex:0 0 auto; }
   .opt.sel .tick { border-color:var(--lime); background:var(--lime); }
-  .opt.sel .tick::after { content:''; width:8px; height:8px; border-radius:50%; background:#14181e; }
-  .opt .name { font-weight:700; }
-  .opt .meta { color:var(--fade); font-size:0.72rem; margin-left:auto; }
-  /* toast */
-  .toast { position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:12px 20px; border-radius:999px; font-size:0.85rem; font-weight:600; opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s; z-index:60; max-width:90vw; text-align:center; }
+  .opt .name { font-weight:700; } .opt .meta { color:var(--fade); font-size:0.72rem; margin-left:auto; }
+  .lbl { font-family:ui-monospace,monospace; font-size:0.62rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--fade); margin:14px 0 8px; }
+  .stepper { display:flex; align-items:center; gap:16px; justify-content:center; margin:8px 0 4px; }
+  .stepper button { width:52px; height:52px; border-radius:14px; border:1px solid var(--line); background:var(--btn); color:var(--ink); font-size:1.6rem; font-weight:800; cursor:pointer; }
+  .stepper .n { font-size:2rem; font-weight:900; min-width:48px; text-align:center; }
+  .phone-in { width:100%; font-size:1.5rem; font-weight:800; letter-spacing:0.06em; text-align:center; padding:16px; border-radius:14px; border:1px solid var(--line); background:var(--btn); color:var(--ink); margin:6px 0; }
+  .toast { position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:12px 20px; border-radius:999px; font-size:0.85rem; font-weight:600; opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s; z-index:60; max-width:90vw; text-align:center; }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .hidden { display:none !important; }
-  .foot { text-align:center; color:var(--fade); font-size:0.68rem; margin-top:auto; padding-top:16px; }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#acca32" stroke-width="1.8"><rect x="8" y="2.5" width="8" height="19" rx="2.5"/><circle cx="12" cy="7.5" r="2.4"/><line x1="10" y1="13.5" x2="14" y2="13.5"/><line x1="10" y1="16.5" x2="14" y2="16.5"/></svg></span>
-      <span class="name">cybercolt<small>booth remote</small></span>
+  <div class="remote">
+    <div class="top">
+      <div class="brand"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--lime)" stroke-width="1.8"><rect x="8" y="2.5" width="8" height="19" rx="2.5"/><circle cx="12" cy="7.5" r="2.4"/><line x1="10" y1="13.5" x2="14" y2="13.5"/><line x1="10" y1="16.5" x2="14" y2="16.5"/></svg><span>Booth Remote<br><span class="g">cybercolt</span></span></div>
+      <button class="iconbtn" id="themeBtn" aria-label="Toggle theme"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
     </div>
 
-    <!-- ── Pair / scan view ── -->
-    <div id="scanView" class="hidden">
-      <div id="resumeCard" class="card hidden">
-        <h2 id="resumeName">Resume booth</h2>
-        <div class="muted" id="resumeSub">Reconnect to the last booth you paired with.</div>
-        <div class="stack" style="margin-top:16px;">
-          <button class="btn primary" id="resumeBtn">Reconnect</button>
-          <button class="btn ghost" id="forgetBtn">Pair a different booth</button>
+    <!-- ── Console (paired) ── -->
+    <div id="consoleView" class="pad hidden">
+      <div class="screen">
+        <div class="l1"><span class="ev" id="evName">Booth</span><span class="stat"><span id="onlineTxt">…</span><span class="dot" id="dot"></span></span></div>
+        <div class="l2"><span class="badge" id="badge">—</span><span class="sub" id="metaSub"></span></div>
+      </div>
+      <div class="pad">
+        <button class="key start" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 4l14 8-14 8z"/></svg>START<span class="sub">new session</span></button>
+        <div class="rowpair">
+          <button class="key cancel" id="cancelBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>Cancel</button>
+          <button class="key" id="closeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>Close</button>
+          <button class="key" id="reopenBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Reopen</button>
+        </div>
+        <div class="rowpair">
+          <button class="key print" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg>Print</button>
+          <button class="key text" id="textBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Text</button>
         </div>
       </div>
+      <div class="foot"><button class="link" id="switchBtn">Switch booth</button><span class="fade" id="verV"></span></div>
+    </div>
 
+    <!-- ── Pair / scan ── -->
+    <div id="scanView" class="pairwrap hidden">
+      <div id="resumeCard" class="card hidden">
+        <h2 id="resumeName">Resume booth</h2>
+        <div class="muted">Reconnect to the last booth you paired with.</div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">
+          <button class="bigbtn" id="resumeBtn">Reconnect</button>
+          <button class="bigbtn ghost" id="forgetBtn">Pair a different booth</button>
+        </div>
+      </div>
       <div id="pairCard" class="card">
         <h2>Pair with a booth</h2>
         <div class="muted">On the booth: <strong>console → Remote</strong> (behind your operator code) shows a QR. Scan it to take control.</div>
-        <div class="scan-frame hidden" id="scanFrame" style="margin-top:16px;">
-          <video id="video" playsinline muted></video>
-          <div class="reticle"></div>
-        </div>
-        <div class="stack" style="margin-top:16px;">
-          <button class="btn primary" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg> Scan booth QR</button>
+        <div class="scan-frame hidden" id="scanFrame"><video id="video" playsinline muted></video><div class="reticle"></div></div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">
+          <button class="bigbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg> Scan booth QR</button>
           <div class="fade" id="scanHint" style="text-align:center;"></div>
         </div>
       </div>
     </div>
 
-    <!-- ── Console view ── -->
-    <div id="consoleView" class="hidden">
-      <div class="card">
-        <div class="status-top">
-          <div><div class="evname" id="evName">Booth</div><div class="evsub" id="evSub"></div></div>
-          <div style="display:flex;align-items:center;gap:8px;"><span class="online-txt" id="onlineTxt">…</span><span class="dot" id="dot"></span></div>
-        </div>
-        <span class="badge" id="badge">—</span>
-        <div class="metrics">
-          <div class="metric"><div class="v" id="printsV">—</div><div class="l">Prints left</div></div>
-          <div class="metric"><div class="v" id="verV">—</div><div class="l">Booth ver</div></div>
-        </div>
-      </div>
-
-      <div class="stack">
-        <button class="btn primary" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 3l14 9-14 9z"/></svg> Start photo session</button>
-        <button class="btn danger" id="cancelBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg> Cancel current session</button>
-        <div class="row">
-          <button class="btn" id="closeBtn">Close booth</button>
-          <button class="btn" id="reopenBtn">Reopen booth</button>
-        </div>
-        <button class="btn ghost" id="switchBtn">Switch booth</button>
-      </div>
-    </div>
-
     <div id="gate" class="card muted hidden"></div>
-    <div class="foot">Keep your remote link private.</div>
   </div>
 
-  <!-- Start pick sheet -->
-  <div class="sheet-ov" id="startSheet">
-    <div class="sheet">
-      <h3>Start a session</h3>
-      <div class="muted">Choose what this guest gets, then start.</div>
-      <div class="opt-group hidden" id="tplGroup">
-        <div class="lbl">Template</div>
-        <div class="opts" id="tplOpts"></div>
-      </div>
-      <div class="opt-group hidden" id="bdGroup">
-        <div class="lbl">Backdrop</div>
-        <div class="opts" id="bdOpts"></div>
-      </div>
-      <div class="stack" style="margin-top:18px;">
-        <button class="btn primary" id="sheetStartBtn">Start now</button>
-        <button class="btn ghost" id="sheetCancelBtn">Back</button>
-      </div>
-    </div>
-  </div>
+  <!-- Start sheet -->
+  <div class="sheet-ov" id="startSheet"><div class="sheet">
+    <h3>Start a session</h3>
+    <div id="tplGroup" class="hidden"><div class="lbl">Template</div><div id="tplOpts"></div></div>
+    <div id="bdGroup" class="hidden"><div class="lbl">Backdrop</div><div id="bdOpts"></div></div>
+    <button class="bigbtn" id="sheetStartBtn" style="margin-top:12px;">Start now</button>
+    <button class="bigbtn ghost" id="sheetCancelBtn" style="margin-top:10px;">Back</button>
+  </div></div>
+
+  <!-- Print sheet -->
+  <div class="sheet-ov" id="printSheet"><div class="sheet">
+    <h3>Print the strip</h3>
+    <div class="lbl">Copies</div>
+    <div class="stepper"><button id="pMinus">−</button><span class="n" id="pN">1</span><button id="pPlus">+</button></div>
+    <button class="bigbtn" id="printGoBtn" style="margin-top:14px;">Print now</button>
+    <button class="bigbtn ghost" id="printCancelBtn" style="margin-top:10px;">Back</button>
+  </div></div>
+
+  <!-- Text sheet -->
+  <div class="sheet-ov" id="textSheet"><div class="sheet">
+    <h3>Text the strip</h3>
+    <div class="muted">Enter the guest's mobile number. Their number is sent straight to the messaging service, never stored on the booth link.</div>
+    <input class="phone-in" id="phoneIn" type="tel" inputmode="numeric" placeholder="(555) 123-4567" autocomplete="off">
+    <button class="bigbtn" id="textGoBtn">Send text</button>
+    <button class="bigbtn ghost" id="textCancelBtn" style="margin-top:10px;">Back</button>
+  </div></div>
 
   <div class="toast" id="toast"></div>
 
-<!-- jsQR: pure-JS QR decoder so scanning works on iOS/Safari too (which lacks the
-     native BarcodeDetector API). Loaded as a classic script → window.jsQR. -->
 <script src="jsQR.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 
 const firebaseConfig = {
-  apiKey:            'AIzaSyDcGx0V3fbWtcajFMQ3cYZ5mQuRnEmpHwI',
-  authDomain:        'cybercolt-photobooth.firebaseapp.com',
-  projectId:         'cybercolt-photobooth',
-  storageBucket:     'cybercolt-photobooth.firebasestorage.app',
-  messagingSenderId: '693027530065',
-  appId:             '1:693027530065:web:52c7caf94823165aa75f70',
+  apiKey:'AIzaSyDcGx0V3fbWtcajFMQ3cYZ5mQuRnEmpHwI', authDomain:'cybercolt-photobooth.firebaseapp.com',
+  projectId:'cybercolt-photobooth', storageBucket:'cybercolt-photobooth.firebasestorage.app',
+  messagingSenderId:'693027530065', appId:'1:693027530065:web:52c7caf94823165aa75f70',
 };
-
 const $ = (id) => document.getElementById(id);
 let toastT = null;
 const toast = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); };
-const show = (v) => { ['scanView','consoleView','gate'].forEach(id => $(id).classList.toggle('hidden', id !== v)); };
 
-// ── PWA service worker ──
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+// ── Theme (user option, persisted — not device-driven) ──
+const THEME_KEY = 'ccpb_remote_theme';
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelector('meta[name=theme-color]').setAttribute('content', t === 'light' ? '#c9cdd4' : '#14181e');
+  $('themeIcon').innerHTML = t === 'light'
+    ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+    : '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
+}
+let theme = (() => { try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch (_) { return 'dark'; } })();
+applyTheme(theme);
+$('themeBtn').onclick = () => { theme = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem(THEME_KEY, theme); } catch (_) {} applyTheme(theme); };
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 const PAIR_KEY = 'ccpb_remote_pair';
 const savePair = (p) => { try { localStorage.setItem(PAIR_KEY, JSON.stringify(p)); } catch (_) {} };
 const loadPair = () => { try { return JSON.parse(localStorage.getItem(PAIR_KEY) || 'null'); } catch (_) { return null; } };
 const clearPair = () => { try { localStorage.removeItem(PAIR_KEY); } catch (_) {} };
+function parsePair(str) { try { const u = new URL(str, location.href); const e=u.searchParams.get('e'),b=u.searchParams.get('b'),t=u.searchParams.get('t'); if (e&&b&&t) return {e,b,t}; } catch(_){} return null; }
 
-// Parse pairing from a URL (booth QR) or the current address bar.
-function parsePair(str) {
-  try {
-    const u = new URL(str, location.href);
-    const e = u.searchParams.get('e'), b = u.searchParams.get('b'), t = u.searchParams.get('t');
-    if (e && b && t) return { e, b, t };
-  } catch (_) {}
-  return null;
-}
+let _app = null, _db = null, _fns = null;
+function fb() { if (!_app) { _app = initializeApp(firebaseConfig); _db = getFirestore(_app); _fns = getFunctions(_app); } return { db:_db, fns:_fns }; }
 
-// Firebase (lazy — only once we have a pairing)
-let _db = null;
-function db() { if (!_db) _db = getFirestore(initializeApp(firebaseConfig)); return _db; }
+const showView = (v) => { ['scanView','consoleView','gate'].forEach(id => $(id).classList.toggle('hidden', id !== v)); };
 
-// ── Boot ──
 const fromUrl = parsePair(location.href);
-if (fromUrl) {
-  savePair(fromUrl);
-  history.replaceState(null, '', location.pathname);   // hide the token from the address bar
-  connect(fromUrl);
-} else {
-  const saved = loadPair();
-  showScan(saved);
-}
+if (fromUrl) { savePair(fromUrl); history.replaceState(null, '', location.pathname); connect(fromUrl); }
+else { showScan(loadPair()); }
 
 function showScan(saved) {
-  show('scanView');
-  if (saved && saved.name) { $('resumeName').textContent = saved.name; }
+  showView('scanView');
   $('resumeCard').classList.toggle('hidden', !saved);
+  if (saved && saved.name) $('resumeName').textContent = saved.name;
   $('resumeBtn').onclick = () => connect(saved);
   $('forgetBtn').onclick = () => { clearPair(); $('resumeCard').classList.add('hidden'); };
   $('scanBtn').onclick = startScan;
 }
 
-// ── QR scanner ──
-// Android Chrome has the native BarcodeDetector; iOS/Safari does not, so fall
-// back to jsQR (decodes video frames off a canvas). getUserMedia itself works on
-// both, so either path scans in-app.
+// ── Scanner (BarcodeDetector → jsQR fallback for iOS) ──
 let scanStream = null, scanning = false;
 async function startScan() {
-  try {
-    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-  } catch (e) { $('scanHint').textContent = 'Camera access is needed to scan. Allow it in your browser settings, or open the booth QR with your phone’s camera app (it will launch this remote).'; return; }
-  const video = $('video');
-  video.setAttribute('playsinline', '');
-  video.srcObject = scanStream; await video.play().catch(() => {});
-  $('scanFrame').classList.remove('hidden');
-  $('scanBtn').classList.add('hidden');
-  $('scanHint').textContent = 'Point at the QR on the booth screen…';
+  try { scanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } }); }
+  catch (e) { $('scanHint').textContent = 'Camera access is needed. Allow it, or open the booth QR with your phone camera app.'; return; }
+  const video = $('video'); video.setAttribute('playsinline',''); video.srcObject = scanStream; await video.play().catch(()=>{});
+  $('scanFrame').classList.remove('hidden'); $('scanBtn').classList.add('hidden'); $('scanHint').textContent = 'Point at the QR on the booth…';
   scanning = true;
-
-  const found = (raw) => { const p = parsePair(raw || ''); if (p) { stopScan(); savePair(p); connect(p); return true; } return false; };
-
+  const found = (raw) => { const p = parsePair(raw||''); if (p) { stopScan(); savePair(p); connect(p); return true; } return false; };
   if ('BarcodeDetector' in window) {
-    const det = new window.BarcodeDetector({ formats: ['qr_code'] });
-    const tick = async () => {
-      if (!scanning) return;
-      try { for (const c of await det.detect(video)) if (found(c.rawValue)) return; } catch (_) {}
-      requestAnimationFrame(tick);
-    };
+    const det = new window.BarcodeDetector({ formats:['qr_code'] });
+    const tick = async () => { if (!scanning) return; try { for (const c of await det.detect(video)) if (found(c.rawValue)) return; } catch(_){} requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
   } else if (window.jsQR) {
-    const cvs = document.createElement('canvas');
-    const cx = cvs.getContext('2d', { willReadFrequently: true });
-    const tick = () => {
-      if (!scanning) return;
+    const cvs = document.createElement('canvas'); const cx = cvs.getContext('2d',{willReadFrequently:true});
+    const tick = () => { if (!scanning) return;
       if (video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth) {
-        cvs.width = video.videoWidth; cvs.height = video.videoHeight;
-        cx.drawImage(video, 0, 0, cvs.width, cvs.height);
-        try {
-          const img = cx.getImageData(0, 0, cvs.width, cvs.height);
-          const code = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
-          if (code && found(code.data)) return;
-        } catch (_) {}
+        cvs.width=video.videoWidth; cvs.height=video.videoHeight; cx.drawImage(video,0,0,cvs.width,cvs.height);
+        try { const img=cx.getImageData(0,0,cvs.width,cvs.height); const code=window.jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'}); if (code && found(code.data)) return; } catch(_){}
       }
-      requestAnimationFrame(tick);
-    };
+      requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
-  } else {
-    stopScan();
-    $('scanHint').textContent = 'Couldn’t start the scanner. Open the booth QR with your phone’s camera app instead.';
-  }
+  } else { stopScan(); $('scanHint').textContent = 'Couldn’t start the scanner. Open the booth QR with your phone camera app.'; }
 }
-function stopScan() {
-  scanning = false;
-  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
-  $('scanFrame').classList.add('hidden');
-  $('scanBtn').classList.remove('hidden');
-}
+function stopScan() { scanning=false; if (scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; } $('scanFrame').classList.add('hidden'); $('scanBtn').classList.remove('hidden'); }
 
 // ── Connect + live status ──
-let statusUnsub = null, cur = null, lastAck = null, PAIR = null;
+let statusUnsub=null, cur=null, lastAck=null, PAIR=null;
 const ONLINE_MS = 45000;
-const isOnline = (d) => d && d.lastSeen && (Date.now() - d.lastSeen) < ONLINE_MS;
+const online = (d) => d && d.lastSeen && (Date.now()-d.lastSeen) < ONLINE_MS;
 
 function connect(p) {
   if (!p) return showScan(null);
-  PAIR = p;
-  show('consoleView');
-  if (statusUnsub) { try { statusUnsub(); } catch (_) {} }
-  const ref = doc(db(), 'events', p.e, 'remote', p.b);
-  statusUnsub = onSnapshot(ref, (snap) => render(snap.exists() ? snap.data() : null),
-    (err) => { $('gate').innerHTML = 'Could not reach the booth.<br><small>' + (err.message || err) + '</small>'; show('gate'); });
-  // decay "online" even without new snapshots
-  clearInterval(connect._t); connect._t = setInterval(() => { if (cur !== null) render(cur); }, 5000);
-  wireControls();
+  PAIR = p; showView('consoleView');
+  if (statusUnsub) { try { statusUnsub(); } catch(_){} }
+  const { db } = fb();
+  statusUnsub = onSnapshot(doc(db,'events',p.e,'remote',p.b), (s)=>render(s.exists()?s.data():null),
+    (err)=>{ $('gate').innerHTML='Could not reach the booth.<br><small>'+(err.message||err)+'</small>'; showView('gate'); });
+  clearInterval(connect._t); connect._t = setInterval(()=>{ if (cur!==null) render(cur); }, 5000);
+  wire();
 }
 
 function render(d) {
   cur = d;
   if (d && d.token && d.token !== PAIR.t) {
-    $('gate').innerHTML = 'This remote link was <strong>revoked</strong>. On the booth open <strong>Remote</strong> again and scan the new code.<div class="stack" style="margin-top:14px;"><button class="btn" id="rescanBtn">Scan new code</button></div>';
-    show('gate'); $('rescanBtn').onclick = () => { clearPair(); showScan(null); };
-    return;
+    $('gate').innerHTML = 'This remote link was <strong>revoked</strong>. On the booth open <strong>Remote</strong> again and scan the new code.<div style="margin-top:12px;"><button class="bigbtn" id="rescanBtn">Scan new code</button></div>';
+    showView('gate'); $('rescanBtn').onclick = ()=>{ clearPair(); showScan(null); }; return;
   }
-  show('consoleView');
-  if (d && d.eventName) savePair({ ...PAIR, name: d.eventName });
+  showView('consoleView');
+  if (d && d.eventName) savePair({ ...PAIR, name:d.eventName });
+  const on = online(d);
+  $('dot').className = 'dot ' + (on?'online':'offline');
+  $('onlineTxt').textContent = on?'Online':'Offline';
+  $('evName').textContent = (d&&d.eventName)||'Booth';
+  const act = on ? ((d&&d.activity)||'idle') : 'offline';
+  const labels = { idle:'Idle · ready', capturing:'Taking photos', composing:'Building strip…', preview:'Strip ready!', closed:'Booth closed', unpaired:'Not paired', offline:'Offline' };
+  let badgeTxt = labels[act]||act;
+  if (act==='capturing' && d && d.photoN && d.photoTotal) badgeTxt = `Photo ${d.photoN} of ${d.photoTotal}`;
+  $('badge').textContent = badgeTxt;
+  const prints = (d && (d.printsLeft==null)) ? (d && d.printEnabled===false?'—':'∞') : String(d.printsLeft);
+  $('metaSub').textContent = on ? (prints==='—'?'':'Prints '+prints) : '';
+  $('verV').textContent = (d&&d.appVersion)?('booth v'+d.appVersion):'';
 
-  const online = isOnline(d);
-  $('dot').className = 'dot ' + (online ? 'online' : 'offline');
-  $('onlineTxt').textContent = online ? 'Online' : 'Offline';
-  $('evName').textContent = (d && d.eventName) || 'Booth';
-  $('evSub').textContent = [(d && d.eventVenue) || '', 'Booth ' + PAIR.b.replace(/^dev_/, '').slice(0, 6).toUpperCase()].filter(Boolean).join(' · ');
+  const stripReady = !!(d && d.lastStripId) && act === 'preview';
+  $('startBtn').disabled  = !on || act!=='idle';
+  $('cancelBtn').disabled = !on || (act!=='capturing' && act!=='composing');
+  $('printBtn').disabled  = !on || act!=='preview' || (d && d.printEnabled===false);
+  $('textBtn').disabled   = !on || !stripReady || !(d && d.smsEnabled);
+  $('closeBtn').disabled  = !on || act==='closed';
+  $('reopenBtn').disabled = !on || act!=='closed';
+  $('closeBtn').style.display  = act==='closed'?'none':'';
+  $('reopenBtn').style.display = act==='closed'?'':'none';
 
-  const act = online ? ((d && d.activity) || 'idle') : 'offline';
-  const labels = { idle:'Idle · ready', capturing:'Taking photos', composing:'Building strip', preview:'On preview', closed:'Booth closed', unpaired:'Not paired', offline:'Offline' };
-  $('badge').className = 'badge ' + act;
-  $('badge').textContent = labels[act] || act;
-
-  const prints = (d && (d.printsLeft === null || d.printsLeft === undefined)) ? (d && d.printEnabled === false ? '—' : '∞') : String(d.printsLeft);
-  $('printsV').textContent = online ? prints : '—';
-  $('verV').textContent = (d && d.appVersion) ? ('v' + d.appVersion) : '—';
-
-  $('startBtn').disabled  = !online || act !== 'idle';
-  $('cancelBtn').disabled = !online || (act !== 'capturing' && act !== 'composing');
-  $('closeBtn').disabled  = !online || act === 'closed';
-  $('reopenBtn').disabled = !online || act !== 'closed';
-  $('closeBtn').style.display  = act === 'closed' ? 'none' : '';
-  $('reopenBtn').style.display = act === 'closed' ? '' : 'none';
-
-  if (d && d.lastCmdId && d.lastCmdId !== lastAck && d.lastCmdResult) {
-    lastAck = d.lastCmdId;
-    const r = d.lastCmdResult;
-    if (r === 'busy') toast('Booth is busy right now');
-    else if (r === 'unknown') toast('That control isn’t available');
-    else if (r === 'error') toast('The booth couldn’t do that');
+  if (d && d.lastCmdId && d.lastCmdId!==lastAck && d.lastCmdResult) {
+    lastAck = d.lastCmdId; const r = d.lastCmdResult;
+    if (r==='busy') toast('Booth is busy right now');
+    else if (r==='unavailable') toast('Not available on this screen');
+    else if (r==='error') toast('The booth couldn’t do that');
   }
 }
 
 async function sendCmd(extra) {
-  const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const ref = doc(db(), 'events', PAIR.e, 'remote', `${PAIR.b}_cmd`);
-  try { await setDoc(ref, { token: PAIR.t, id, createdAt: Date.now(), ...extra }); }
-  catch (e) { toast('Send failed: ' + (e.message || e)); }
+  const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+  const { db } = fb();
+  try { await setDoc(doc(db,'events',PAIR.e,'remote',`${PAIR.b}_cmd`), { token:PAIR.t, id, createdAt:Date.now(), ...extra }); }
+  catch (e) { toast('Send failed'); }
 }
 
-function wireControls() {
-  $('cancelBtn').onclick = () => { if (!$('cancelBtn').disabled) { sendCmd({ action: 'cancel' }); toast('Cancelling…'); } };
-  $('closeBtn').onclick  = () => { if (!$('closeBtn').disabled)  { sendCmd({ action: 'close' });  toast('Closing booth…'); } };
-  $('reopenBtn').onclick = () => { if (!$('reopenBtn').disabled) { sendCmd({ action: 'reopen' }); toast('Reopening…'); } };
-  $('switchBtn').onclick = () => { if (statusUnsub) statusUnsub(); showScan(loadPair()); };
+function wire() {
+  $('cancelBtn').onclick = () => { if (!$('cancelBtn').disabled){ sendCmd({action:'cancel'}); toast('Cancelling…'); } };
+  $('closeBtn').onclick  = () => { if (!$('closeBtn').disabled){ sendCmd({action:'close'}); toast('Closing booth…'); } };
+  $('reopenBtn').onclick = () => { if (!$('reopenBtn').disabled){ sendCmd({action:'reopen'}); toast('Reopening…'); } };
   $('startBtn').onclick  = () => { if (!$('startBtn').disabled) openStartSheet(); };
+  $('printBtn').onclick  = () => { if (!$('printBtn').disabled) openPrintSheet(); };
+  $('textBtn').onclick   = () => { if (!$('textBtn').disabled) $('textSheet').classList.add('show'); };
+  $('switchBtn').onclick = () => { if (statusUnsub) statusUnsub(); showScan(loadPair()); };
   $('sheetCancelBtn').onclick = () => $('startSheet').classList.remove('show');
+  $('printCancelBtn').onclick = () => $('printSheet').classList.remove('show');
+  $('textCancelBtn').onclick  = () => $('textSheet').classList.remove('show');
 }
 
 // ── Start pick sheet ──
-let pickTpl = null, pickBd = null;
+let pickTpl=null, pickBd=null;
 function openStartSheet() {
-  const d = cur || {};
-  const tpls = d.templates || [];
-  const bds = d.backdrops || [];
-  const needTpl = tpls.length > 1;
-  const needBd = bds.length > 0;
-  // Nothing to choose → start immediately.
-  if (!needTpl && !needBd) { sendCmd({ action: 'start' }); toast('Starting…'); return; }
-
-  pickTpl = tpls[0] ? tpls[0].id : null;
-  pickBd = null;   // default: booth's default (first) backdrop
-
-  // Templates
+  const d = cur||{}; const tpls=d.templates||[]; const bds=d.backdrops||[];
+  const needTpl = tpls.length>1, needBd = bds.length>0;
+  if (!needTpl && !needBd) { sendCmd({action:'start'}); toast('Starting…'); return; }
+  pickTpl = tpls[0]?tpls[0].id:null; pickBd=null;
   $('tplGroup').classList.toggle('hidden', !needTpl);
-  if (needTpl) {
-    $('tplOpts').innerHTML = tpls.map(t =>
-      `<div class="opt" data-tpl="${esc(t.id)}"><span class="tick"></span><span class="name">${esc(t.name)}</span><span class="meta">${esc(t.size || '')}</span></div>`).join('');
-    $('tplOpts').querySelectorAll('.opt').forEach(o => o.onclick = () => { pickTpl = o.dataset.tpl; markSel('tplOpts', o); });
-  }
-  // Backdrops (+ optional Keep it real for smart mode)
+  if (needTpl) { $('tplOpts').innerHTML = tpls.map(t=>`<div class="opt" data-tpl="${esc(t.id)}"><span class="tick"></span><span class="name">${esc(t.name)}</span><span class="meta">${esc(t.size||'')}</span></div>`).join('');
+    $('tplOpts').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ pickTpl=o.dataset.tpl; sel('tplOpts',o); }); }
   $('bdGroup').classList.toggle('hidden', !needBd);
-  if (needBd) {
-    let html = '';
-    if (d.backdropSmart) html += `<div class="opt" data-bd="__none__"><span class="tick"></span><span class="name">Keep it real</span><span class="meta">no AI</span></div>`;
-    html += bds.map(b => `<div class="opt" data-bd="${esc(b.key)}"><span class="tick"></span><span class="name">${esc(b.name)}</span></div>`).join('');
-    $('bdOpts').innerHTML = html;
-    $('bdOpts').querySelectorAll('.opt').forEach(o => o.onclick = () => { pickBd = o.dataset.bd; markSel('bdOpts', o); });
-  }
-  // preselect first of each
-  if (needTpl) markSel('tplOpts', $('tplOpts').firstElementChild);
-  if (needBd)  { const first = $('bdOpts').firstElementChild; markSel('bdOpts', first); pickBd = first.dataset.bd; }
-
-  $('sheetStartBtn').onclick = () => {
-    $('startSheet').classList.remove('show');
-    const extra = { action: 'start' };
-    if (needTpl && pickTpl) extra.templateId = pickTpl;
-    if (needBd && pickBd) extra.backdropKey = pickBd;
-    sendCmd(extra); toast('Starting…');
-  };
+  if (needBd) { let h=''; if (d.backdropSmart) h+=`<div class="opt" data-bd="__none__"><span class="tick"></span><span class="name">Keep it real</span><span class="meta">no AI</span></div>`;
+    h+=bds.map(b=>`<div class="opt" data-bd="${esc(b.key)}"><span class="tick"></span><span class="name">${esc(b.name)}</span></div>`).join('');
+    $('bdOpts').innerHTML=h; $('bdOpts').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ pickBd=o.dataset.bd; sel('bdOpts',o); }); }
+  if (needTpl) sel('tplOpts', $('tplOpts').firstElementChild);
+  if (needBd) { const f=$('bdOpts').firstElementChild; sel('bdOpts',f); pickBd=f.dataset.bd; }
+  $('sheetStartBtn').onclick = () => { $('startSheet').classList.remove('show'); const x={action:'start'}; if (needTpl&&pickTpl) x.templateId=pickTpl; if (needBd&&pickBd) x.backdropKey=pickBd; sendCmd(x); toast('Starting…'); };
   $('startSheet').classList.add('show');
 }
-function markSel(groupId, el) { $(groupId).querySelectorAll('.opt').forEach(o => o.classList.remove('sel')); if (el) el.classList.add('sel'); }
-function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+function sel(g,el){ $(g).querySelectorAll('.opt').forEach(o=>o.classList.remove('sel')); if (el) el.classList.add('sel'); }
+
+// ── Print sheet ──
+let copies=1;
+function openPrintSheet(){ copies=1; $('pN').textContent='1'; $('printSheet').classList.add('show');
+  $('pMinus').onclick=()=>{ copies=Math.max(1,copies-1); $('pN').textContent=copies; };
+  $('pPlus').onclick =()=>{ copies=Math.min(10,copies+1); $('pN').textContent=copies; };
+  $('printGoBtn').onclick=()=>{ $('printSheet').classList.remove('show'); sendCmd({action:'print',copies}); toast(copies>1?`Printing ${copies}…`:'Printing…'); };
+}
+
+// ── Text sheet (calls the SMS function DIRECTLY — phone never hits Firestore) ──
+$('textGoBtn')?.addEventListener('click', async () => {
+  const raw = ($('phoneIn').value||'').replace(/\D/g,'');
+  if (raw.length < 10) { toast('Enter a 10-digit number'); return; }
+  const d = cur||{}; if (!d.lastStripId) { toast('Strip still uploading — try again'); return; }
+  const btn = $('textGoBtn'); btn.disabled=true; btn.textContent='Sending…';
+  try {
+    const { fns } = fb();
+    await httpsCallable(fns,'sendStripSms')({ eventCode:PAIR.e, stripId:d.lastStripId, phone:'+1'+raw.slice(-10) });
+    $('textSheet').classList.remove('show'); $('phoneIn').value=''; toast('Text sent!');
+  } catch (e) { toast('Text failed: '+(e.message||'try again')); }
+  finally { btn.disabled=false; btn.textContent='Send text'; }
+});
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
 </body>
 </html>
