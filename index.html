@@ -88,7 +88,7 @@
   .primary { flex:1.15; min-height:76px; }
   .grid2 { display:flex; gap:12px; flex:1; min-height:0; }
   .grid2 .btn { flex:1; }
-  .btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface); color:var(--ink); border-radius:18px;
+  .btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface); color:var(--ink); border-radius:28px;
     font-family:inherit; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px;
     box-shadow:var(--shadow); transition:transform 0.07s ease, filter 0.15s ease; min-height:64px; padding:10px; }
   .btn:active { transform:translateY(1px) scale(0.995); }
@@ -113,7 +113,7 @@
   .card h2 { margin:0 0 8px; font-size:1.22rem; letter-spacing:-0.02em; }
   .muted { color:var(--dim); font-size:0.9rem; line-height:1.55; }
   .faint { color:var(--faint); font-size:0.76rem; }
-  .cta { appearance:none; border:none; border-radius:15px; padding:16px; font-size:1rem; font-weight:800; cursor:pointer; width:100%;
+  .cta { appearance:none; border:none; border-radius:22px; padding:16px; font-size:1rem; font-weight:800; cursor:pointer; width:100%;
     background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:var(--shadow); }
   .cta.sub { background:transparent; color:var(--dim); border:1px solid var(--hair-2); box-shadow:none; }
   .cta svg { width:20px; height:20px; }
@@ -239,8 +239,7 @@
     <h3>Start a session</h3><div class="muted">Set what this guest gets, then start.</div>
     <div id="tplGroup" class="hidden"><div class="lbl">Template</div><div id="tplOpts"></div></div>
     <div id="bdGroup" class="hidden"><div class="lbl">Backdrop</div><div id="bdOpts"></div></div>
-    <button class="cta" id="sheetStartBtn" style="margin-top:14px;">Start now</button>
-    <button class="cta sub" id="sheetCancelBtn" style="margin-top:10px;">Back</button>
+    <button class="cta sub" id="sheetCancelBtn" style="margin-top:14px;">Back</button>
   </div></div>
 
   <!-- Print sheet -->
@@ -283,6 +282,7 @@
     <div class="lbl">Copies</div>
     <div class="stepper"><button id="dMinus">−</button><span class="n" id="dN">1</span><button id="dPlus">+</button></div>
     <button class="cta" id="detailPrintBtn" style="margin-top:14px;background:var(--info);color:#04121e;">Reprint</button>
+    <button class="cta" id="detailTextBtn" style="margin-top:10px;background:var(--ok);color:#04140a;">Text this strip</button>
     <button class="cta" id="detailDelBtn" style="margin-top:10px;background:var(--danger);color:#fff;">Delete strip</button>
     <button class="cta sub" id="detailCloseBtn" style="margin-top:10px;">Back</button>
   </div></div>
@@ -509,35 +509,39 @@ function openDetail(id){
   $('dMinus').onclick=()=>{ detailCopies=Math.max(1,detailCopies-1); $('dN').textContent=detailCopies; };
   $('dPlus').onclick =()=>{ detailCopies=Math.min(10,detailCopies+1); $('dN').textContent=detailCopies; };
   $('detailPrintBtn').onclick=()=>{ sendCmd({action:'reprintStrip',stripId:id,copies:detailCopies}); toast(detailCopies>1?`Reprinting ${detailCopies}…`:'Reprinting…'); $('detailSheet').classList.remove('show'); };
+  const canText = cur && cur.smsEnabled;
+  $('detailTextBtn').style.display = canText ? '' : 'none';
+  $('detailTextBtn').onclick=()=>{ $('detailSheet').classList.remove('show'); openTextSheet(id); };
   $('detailDelBtn').onclick=()=>{ sendCmd({action:'deleteStrip',stripId:id}); toast('Deleting…'); $('detailSheet').classList.remove('show'); };
   $('detailSheet').classList.add('show');
 }
 
-// Start sheet
-let pickTpl=null,pickBd=null;
+// Start sheet — select-to-start, sequential like the kiosk: tap a template (if
+// asked) → tap a backdrop (if asked) → the session starts. No separate button.
 function openStartSheet(){
-  const d=cur||{}; const tpls=d.templates||[],bds=d.backdrops||[];
-  const needTpl=tpls.length>1,needBd=bds.length>0;
-  if(!needTpl&&!needBd){ sendCmd({action:'start'}); toast('Starting…'); return; }
-  pickTpl=tpls[0]?tpls[0].id:null; pickBd=null;
-  $('tplGroup').classList.toggle('hidden',!needTpl);
-  if(needTpl){ $('tplOpts').innerHTML=tpls.map(t=>`<div class="opt" data-tpl="${esc(t.id)}"><span class="tick"></span>${t.preview?`<img class="bdthumb" src="${esc(t.preview)}" alt="" loading="lazy">`:'<span class="bdthumb none">T</span>'}<span class="name">${esc(t.name)}</span><span class="meta">${esc(t.size||'')}</span></div>`).join('');
-    $('tplOpts').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{pickTpl=o.dataset.tpl; sel('tplOpts',o);}); }
-  $('bdGroup').classList.toggle('hidden',!needBd);
-  if(needBd){ let h='<div class="bdgrid">';
+  const d=cur||{}; const tpls=d.templates||[], bds=d.backdrops||[];
+  const needTpl=tpls.length>1, needBd=bds.length>0;
+  if(!needTpl && !needBd){ sendCmd({action:'start'}); toast('Starting…'); return; }
+  const chosen={ templateId:null, backdropKey:null };
+  const h3=$('startSheet').querySelector('h3');
+  const finish=()=>{ $('startSheet').classList.remove('show'); const x={action:'start'}; if(chosen.templateId)x.templateId=chosen.templateId; if(chosen.backdropKey)x.backdropKey=chosen.backdropKey; sendCmd(x); toast('Starting…'); };
+  const bdStep=()=>{
+    if(h3) h3.textContent='Tap a backdrop to start';
+    $('tplGroup').classList.add('hidden'); $('bdGroup').classList.remove('hidden');
+    let h='<div class="bdgrid">';
     if(d.backdropSmart) h+=`<div class="bdcell none-cell" data-bd="__none__">Keep it real<br><span style="font-size:0.7rem;font-weight:600;color:var(--faint);">no AI backdrop</span></div>`;
     h+=bds.map(b=>`<div class="bdcell" data-bd="${esc(b.key)}">${b.preview?`<img src="${esc(b.preview)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}<div class="name">${esc(b.name)}</div></div>`).join('');
-    h+='</div>';
-    $('bdOpts').innerHTML=h;
-    const cells=$('bdOpts').querySelectorAll('.bdcell');
-    cells.forEach(c=>c.onclick=()=>{ pickBd=c.dataset.bd; cells.forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); });
-  }
-  if(needTpl) sel('tplOpts',$('tplOpts').firstElementChild);
-  if(needBd){ const f=$('bdOpts').querySelector('.bdcell'); if(f){ f.classList.add('sel'); pickBd=f.dataset.bd; } }
-  $('sheetStartBtn').onclick=()=>{ $('startSheet').classList.remove('show'); const x={action:'start'}; if(needTpl&&pickTpl)x.templateId=pickTpl; if(needBd&&pickBd)x.backdropKey=pickBd; sendCmd(x); toast('Starting…'); };
+    h+='</div>'; $('bdOpts').innerHTML=h;
+    $('bdOpts').querySelectorAll('.bdcell').forEach(c=>c.onclick=()=>{ chosen.backdropKey=c.dataset.bd; finish(); });
+  };
+  if(needTpl){
+    if(h3) h3.textContent = needBd ? 'Tap a template' : 'Tap a template to start';
+    $('tplGroup').classList.remove('hidden'); $('bdGroup').classList.add('hidden');
+    $('tplOpts').innerHTML=tpls.map(t=>`<div class="opt" data-tpl="${esc(t.id)}">${t.preview?`<img class="bdthumb" src="${esc(t.preview)}" alt="" loading="lazy">`:'<span class="bdthumb none">T</span>'}<span class="name">${esc(t.name)}</span><span class="meta">${esc(t.size||'')}</span></div>`).join('');
+    $('tplOpts').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ chosen.templateId=o.dataset.tpl; if(needBd) bdStep(); else finish(); });
+  } else { bdStep(); }
   $('startSheet').classList.add('show');
 }
-function sel(g,el){ $(g).querySelectorAll('.opt').forEach(o=>o.classList.remove('sel')); if(el) el.classList.add('sel'); }
 
 // Print sheet
 let copies=1;
@@ -574,15 +578,17 @@ function buildDialpad(){
     renderDial();
   });
 }
-function openTextSheet(){ digits=''; renderDial(); $('textSheet').classList.add('show'); }
+let textTarget=null;   // which strip the text sheet will send (current preview, or a View-Strips pick)
+function openTextSheet(stripId){ textTarget = stripId || (cur && cur.lastStripId) || null; digits=''; renderDial(); $('textSheet').classList.add('show'); }
 $('textGoBtn')?.addEventListener('click', async ()=>{
   if(digits.length<10){ toast('Enter a 10-digit number'); return; }
-  const d=cur||{}; if(!d.lastStripId){ toast('Strip still uploading — try again'); return; }
+  if(!textTarget){ toast('Strip still uploading — try again'); return; }
   const btn=$('textGoBtn'); btn.disabled=true; btn.textContent='Sending…';
-  try{ const {fns}=fb(); await httpsCallable(fns,'sendStripSms')({eventCode:PAIR.e,stripId:d.lastStripId,phone:'+1'+digits});
+  try{ const {fns}=fb(); await httpsCallable(fns,'sendStripSms')({eventCode:PAIR.e,stripId:textTarget,phone:'+1'+digits});
     $('textSheet').classList.remove('show'); toast('Text sent!');
-    // Clear the booth back to attract now that this strip has been sent.
-    sendCmd({action:'done'}); }
+    // Only clear the booth if we texted the strip it's currently showing (a live
+    // preview) — texting a PAST strip from View Strips must not disturb the booth.
+    if (cur && cur.lastStripId === textTarget && cur.activity==='preview') sendCmd({action:'done'}); }
   catch(e){ toast('Text failed — try again'); }
   finally{ btn.disabled=false; btn.textContent='Send text'; }
 });
