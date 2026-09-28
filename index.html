@@ -2,51 +2,79 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14181e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Booth Remote">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <title>CyberColt Booth Remote</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2314181e'/%3E%3Ccircle cx='12' cy='13' r='4' fill='none' stroke='%23acca32' stroke-width='2'/%3E%3C/svg%3E">
 <style>
-  :root { --bg:#14181e; --panel:#1c2129; --line:rgba(255,255,255,0.1); --ink:#f2f4ee; --dim:#aeb4bf; --fade:#6b7280; --lime:#acca32; --gold:#e5c353; --red:#e0685f; --green:#5b8c5a; }
+  :root { --bg:#14181e; --panel:#1c2129; --panel2:#0f1216; --line:rgba(255,255,255,0.1); --ink:#f2f4ee; --dim:#aeb4bf; --fade:#6b7280; --lime:#acca32; --gold:#e5c353; --red:#e0685f; --green:#5b8c5a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; }
-  body { background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; display:flex; flex-direction:column; align-items:center; padding:24px 18px calc(24px + env(safe-area-inset-bottom)); min-height:100%; }
-  .wrap { width:100%; max-width:440px; margin:auto 0; }
-  .brand { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:22px; }
-  .brand .mark { width:34px; height:34px; border-radius:9px; background:#0f1216; display:flex; align-items:center; justify-content:center; }
-  .brand .mark svg { width:22px; height:22px; }
+  body { background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; display:flex; flex-direction:column; min-height:100%; padding:20px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .wrap { width:100%; max-width:460px; margin:0 auto; flex:1; display:flex; flex-direction:column; }
+  .brand { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:20px; }
+  .brand .mark { width:34px; height:34px; border-radius:9px; background:var(--panel2); display:flex; align-items:center; justify-content:center; }
   .brand .name { font-weight:900; font-size:1.05rem; letter-spacing:-0.02em; }
   .brand .name small { display:block; font-weight:700; font-size:0.6rem; letter-spacing:0.24em; text-transform:uppercase; color:var(--gold); }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:16px; }
+  h2 { font-size:1.1rem; margin:0 0 6px; }
+  .muted { color:var(--dim); font-size:0.88rem; line-height:1.5; }
+  .fade { color:var(--fade); font-size:0.72rem; }
+  button { font-family:inherit; }
+  .btn { appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:14px; padding:15px 18px; font-size:1rem; font-weight:700; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:9px; transition:transform 0.08s, opacity 0.15s; }
+  .btn:active { transform:scale(0.98); }
+  .btn svg { width:20px; height:20px; }
+  .btn.primary { background:var(--lime); color:#14181e; border-color:var(--lime); }
+  .btn.danger { background:transparent; color:var(--red); border-color:rgba(224,104,95,0.5); }
+  .btn.ghost { background:transparent; color:var(--dim); }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .row { display:flex; gap:10px; }
+  .stack > * + * { margin-top:12px; }
+  /* status */
   .status-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-  .dot { width:11px; height:11px; border-radius:50%; background:var(--fade); flex:0 0 auto; box-shadow:0 0 0 0 rgba(0,0,0,0); }
+  .dot { width:11px; height:11px; border-radius:50%; background:var(--fade); flex:0 0 auto; }
   .dot.online { background:var(--green); box-shadow:0 0 10px rgba(91,140,90,0.7); }
   .dot.offline { background:var(--red); }
   .online-txt { font-family:ui-monospace,monospace; font-size:0.66rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); }
   .evname { font-weight:800; font-size:1.25rem; line-height:1.2; }
   .evsub { color:var(--fade); font-size:0.78rem; margin-top:2px; }
-  .activity { margin-top:16px; display:flex; align-items:center; gap:12px; }
-  .badge { font-family:ui-monospace,monospace; font-weight:700; font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; padding:8px 14px; border-radius:999px; border:1px solid var(--line); color:var(--dim); }
+  .badge { display:inline-block; margin-top:14px; font-family:ui-monospace,monospace; font-weight:700; font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; padding:8px 14px; border-radius:999px; border:1px solid var(--line); color:var(--dim); }
   .badge.idle { color:var(--lime); border-color:rgba(172,202,50,0.4); }
-  .badge.capturing, .badge.composing, .badge.preview { color:var(--gold); border-color:rgba(229,195,83,0.4); }
-  .badge.unpaired, .badge.offline { color:var(--red); border-color:rgba(224,104,95,0.4); }
+  .badge.capturing,.badge.composing,.badge.preview { color:var(--gold); border-color:rgba(229,195,83,0.4); }
+  .badge.closed,.badge.unpaired,.badge.offline { color:var(--red); border-color:rgba(224,104,95,0.4); }
   .metrics { display:flex; gap:10px; margin-top:16px; }
-  .metric { flex:1; background:#0f1216; border-radius:12px; padding:12px; text-align:center; }
-  .metric .v { font-weight:800; font-size:1.15rem; }
-  .metric .l { color:var(--fade); font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:3px; }
-  .btns { display:flex; flex-direction:column; gap:12px; }
-  button.act { appearance:none; border:none; border-radius:16px; padding:20px; font-size:1.1rem; font-weight:800; cursor:pointer; transition:transform 0.08s, opacity 0.15s; display:flex; align-items:center; justify-content:center; gap:10px; }
-  button.act:active { transform:scale(0.98); }
-  button.act:disabled { opacity:0.4; cursor:not-allowed; }
-  button.start { background:var(--lime); color:#14181e; }
-  button.cancel { background:transparent; color:var(--red); border:2px solid rgba(224,104,95,0.5); }
-  button.act svg { width:22px; height:22px; }
-  .toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:12px 20px; border-radius:999px; font-size:0.85rem; font-weight:600; opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s; z-index:50; max-width:90vw; text-align:center; }
+  .metric { flex:1; background:var(--panel2); border-radius:12px; padding:12px; text-align:center; }
+  .metric .v { font-weight:800; font-size:1.1rem; }
+  .metric .l { color:var(--fade); font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:3px; }
+  /* scanner */
+  #video { width:100%; border-radius:16px; background:#000; aspect-ratio:1; object-fit:cover; display:block; }
+  .scan-frame { position:relative; }
+  .scan-frame .reticle { position:absolute; inset:14%; border:3px solid rgba(172,202,50,0.8); border-radius:18px; pointer-events:none; }
+  /* sheet */
+  .sheet-ov { position:fixed; inset:0; z-index:40; background:rgba(10,11,14,0.6); display:none; align-items:flex-end; }
+  .sheet-ov.show { display:flex; }
+  .sheet { background:var(--panel); width:100%; max-width:460px; margin:0 auto; border-radius:22px 22px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto; }
+  .sheet h3 { margin:2px 0 4px; font-size:1.15rem; }
+  .opt-group { margin:14px 0; }
+  .opt-group .lbl { font-family:ui-monospace,monospace; font-size:0.62rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--fade); margin-bottom:8px; }
+  .opts { display:flex; flex-direction:column; gap:8px; }
+  .opt { display:flex; align-items:center; gap:12px; padding:13px 14px; border:1px solid var(--line); border-radius:12px; cursor:pointer; }
+  .opt.sel { border-color:var(--lime); background:rgba(172,202,50,0.08); }
+  .opt .tick { width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  .opt.sel .tick { border-color:var(--lime); background:var(--lime); }
+  .opt.sel .tick::after { content:''; width:8px; height:8px; border-radius:50%; background:#14181e; }
+  .opt .name { font-weight:700; }
+  .opt .meta { color:var(--fade); font-size:0.72rem; margin-left:auto; }
+  /* toast */
+  .toast { position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:12px 20px; border-radius:999px; font-size:0.85rem; font-weight:600; opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s; z-index:60; max-width:90vw; text-align:center; }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  .msg { text-align:center; color:var(--dim); line-height:1.6; padding:30px 10px; }
-  .msg strong { color:var(--ink); }
-  .foot { text-align:center; color:var(--fade); font-size:0.68rem; margin-top:8px; }
   .hidden { display:none !important; }
+  .foot { text-align:center; color:var(--fade); font-size:0.68rem; margin-top:auto; padding-top:16px; }
 </style>
 </head>
 <body>
@@ -56,29 +84,80 @@
       <span class="name">cybercolt<small>booth remote</small></span>
     </div>
 
-    <div id="app" class="hidden">
+    <!-- ── Pair / scan view ── -->
+    <div id="scanView" class="hidden">
+      <div id="resumeCard" class="card hidden">
+        <h2 id="resumeName">Resume booth</h2>
+        <div class="muted" id="resumeSub">Reconnect to the last booth you paired with.</div>
+        <div class="stack" style="margin-top:16px;">
+          <button class="btn primary" id="resumeBtn">Reconnect</button>
+          <button class="btn ghost" id="forgetBtn">Pair a different booth</button>
+        </div>
+      </div>
+
+      <div id="pairCard" class="card">
+        <h2>Pair with a booth</h2>
+        <div class="muted">On the booth: <strong>console → Remote</strong> (behind your operator code) shows a QR. Scan it to take control.</div>
+        <div class="scan-frame hidden" id="scanFrame" style="margin-top:16px;">
+          <video id="video" playsinline muted></video>
+          <div class="reticle"></div>
+        </div>
+        <div class="stack" style="margin-top:16px;">
+          <button class="btn primary" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg> Scan booth QR</button>
+          <div class="fade" id="scanHint" style="text-align:center;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Console view ── -->
+    <div id="consoleView" class="hidden">
       <div class="card">
         <div class="status-top">
           <div><div class="evname" id="evName">Booth</div><div class="evsub" id="evSub"></div></div>
           <div style="display:flex;align-items:center;gap:8px;"><span class="online-txt" id="onlineTxt">…</span><span class="dot" id="dot"></span></div>
         </div>
-        <div class="activity"><span class="badge" id="badge">—</span></div>
+        <span class="badge" id="badge">—</span>
         <div class="metrics">
           <div class="metric"><div class="v" id="printsV">—</div><div class="l">Prints left</div></div>
           <div class="metric"><div class="v" id="verV">—</div><div class="l">Booth ver</div></div>
         </div>
       </div>
 
-      <div class="btns">
-        <button class="act start" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 3l14 9-14 9z"/></svg> Start photo session</button>
-        <button class="act cancel" id="cancelBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg> Cancel current session</button>
+      <div class="stack">
+        <button class="btn primary" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 3l14 9-14 9z"/></svg> Start photo session</button>
+        <button class="btn danger" id="cancelBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg> Cancel current session</button>
+        <div class="row">
+          <button class="btn" id="closeBtn">Close booth</button>
+          <button class="btn" id="reopenBtn">Reopen booth</button>
+        </div>
+        <button class="btn ghost" id="switchBtn">Switch booth</button>
       </div>
-      <div class="foot" id="foot"></div>
     </div>
 
-    <div id="gate" class="msg hidden"></div>
-    <div id="loading" class="msg">Connecting to the booth…</div>
+    <div id="gate" class="card muted hidden"></div>
+    <div class="foot">Keep your remote link private.</div>
   </div>
+
+  <!-- Start pick sheet -->
+  <div class="sheet-ov" id="startSheet">
+    <div class="sheet">
+      <h3>Start a session</h3>
+      <div class="muted">Choose what this guest gets, then start.</div>
+      <div class="opt-group hidden" id="tplGroup">
+        <div class="lbl">Template</div>
+        <div class="opts" id="tplOpts"></div>
+      </div>
+      <div class="opt-group hidden" id="bdGroup">
+        <div class="lbl">Backdrop</div>
+        <div class="opts" id="bdOpts"></div>
+      </div>
+      <div class="stack" style="margin-top:18px;">
+        <button class="btn primary" id="sheetStartBtn">Start now</button>
+        <button class="btn ghost" id="sheetCancelBtn">Back</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -94,93 +173,209 @@ const firebaseConfig = {
   appId:             '1:693027530065:web:52c7caf94823165aa75f70',
 };
 
-const params = new URLSearchParams(location.search);
-const CODE  = (params.get('e') || '').trim();
-const BOOTH = (params.get('b') || '').trim();
-const TOKEN = (params.get('t') || '').trim();
-
 const $ = (id) => document.getElementById(id);
-const showGate = (html) => { $('loading').classList.add('hidden'); $('app').classList.add('hidden'); const g = $('gate'); g.innerHTML = html; g.classList.remove('hidden'); };
 let toastT = null;
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+const toast = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); };
+const show = (v) => { ['scanView','consoleView','gate'].forEach(id => $(id).classList.toggle('hidden', id !== v)); };
 
-if (!CODE || !BOOTH || !TOKEN) {
-  showGate('Open this page by <strong>scanning the QR code on the booth</strong> (Booth console → Remote). A remote link needs the booth’s pairing code.');
+// ── PWA service worker ──
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+
+const PAIR_KEY = 'ccpb_remote_pair';
+const savePair = (p) => { try { localStorage.setItem(PAIR_KEY, JSON.stringify(p)); } catch (_) {} };
+const loadPair = () => { try { return JSON.parse(localStorage.getItem(PAIR_KEY) || 'null'); } catch (_) { return null; } };
+const clearPair = () => { try { localStorage.removeItem(PAIR_KEY); } catch (_) {} };
+
+// Parse pairing from a URL (booth QR) or the current address bar.
+function parsePair(str) {
+  try {
+    const u = new URL(str, location.href);
+    const e = u.searchParams.get('e'), b = u.searchParams.get('b'), t = u.searchParams.get('t');
+    if (e && b && t) return { e, b, t };
+  } catch (_) {}
+  return null;
+}
+
+// Firebase (lazy — only once we have a pairing)
+let _db = null;
+function db() { if (!_db) _db = getFirestore(initializeApp(firebaseConfig)); return _db; }
+
+// ── Boot ──
+const fromUrl = parsePair(location.href);
+if (fromUrl) {
+  savePair(fromUrl);
+  history.replaceState(null, '', location.pathname);   // hide the token from the address bar
+  connect(fromUrl);
 } else {
-  start();
+  const saved = loadPair();
+  showScan(saved);
 }
 
-function start() {
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const statusRef = doc(db, 'events', CODE, 'remote', BOOTH);
-  const cmdRef    = doc(db, 'events', CODE, 'remote', `${BOOTH}_cmd`);
+function showScan(saved) {
+  show('scanView');
+  if (saved && saved.name) { $('resumeName').textContent = saved.name; }
+  $('resumeCard').classList.toggle('hidden', !saved);
+  $('resumeBtn').onclick = () => connect(saved);
+  $('forgetBtn').onclick = () => { clearPair(); $('resumeCard').classList.add('hidden'); };
+  $('scanBtn').onclick = startScan;
+}
 
-  let last = null;
-  let lastAckSeen = null;
-
-  const ONLINE_MS = 45000;   // booth heartbeats every ~20s
-  function isOnline(d) { return d && d.lastSeen && (Date.now() - d.lastSeen) < ONLINE_MS; }
-
-  function render(d) {
-    $('loading').classList.add('hidden');
-    $('gate').classList.add('hidden');
-    $('app').classList.remove('hidden');
-
-    // Wrong/expired token → this link was revoked with "New code".
-    if (d && d.token && d.token !== TOKEN) {
-      showGate('This remote link is <strong>no longer valid</strong>. On the booth, open <strong>Remote</strong> again and scan the new code.');
-      return;
-    }
-
-    const online = isOnline(d);
-    $('dot').className = 'dot ' + (online ? 'online' : 'offline');
-    $('onlineTxt').textContent = online ? 'Online' : 'Offline';
-    $('evName').textContent = (d && d.eventName) || 'Booth';
-    $('evSub').textContent = 'Booth ' + BOOTH.replace(/^dev_/, '').slice(0, 6).toUpperCase();
-
-    const act = online ? ((d && d.activity) || 'idle') : 'offline';
-    const labels = { idle:'Idle · ready', capturing:'Taking photos', composing:'Building strip', preview:'On preview', unpaired:'Not paired', offline:'Offline' };
-    const badge = $('badge');
-    badge.className = 'badge ' + act;
-    badge.textContent = labels[act] || act;
-
-    const prints = (d && (d.printsLeft === null || d.printsLeft === undefined)) ? (d && d.printEnabled === false ? '—' : '∞') : String(d.printsLeft);
-    $('printsV').textContent = online ? prints : '—';
-    $('verV').textContent = (d && d.appVersion) ? ('v' + d.appVersion) : '—';
-
-    $('startBtn').disabled  = !online || act !== 'idle';
-    $('cancelBtn').disabled = !online || (act !== 'capturing' && act !== 'composing');
-
-    // Surface the booth's ack of our last command once.
-    if (d && d.lastCmdId && d.lastCmdId !== lastAckSeen && d.lastCmdResult) {
-      lastAckSeen = d.lastCmdId;
-      const r = d.lastCmdResult;
-      if (r === 'ok') { /* the activity change is feedback enough */ }
-      else if (r === 'busy') toast('Booth is busy — can’t start right now');
-      else if (r === 'nothing-to-reprint') toast('Nothing to reprint yet');
-      else if (r !== 'ok') toast('Booth: ' + r);
-    }
-    last = d;
+// ── QR scanner (BarcodeDetector) ──
+let scanStream = null, scanning = false;
+async function startScan() {
+  if (!('BarcodeDetector' in window)) {
+    $('scanHint').textContent = 'This browser can’t scan in-app — use your phone’s camera app to scan the booth QR (it will open this remote).';
+    return;
   }
-
-  onSnapshot(statusRef, (snap) => {
-    render(snap.exists() ? snap.data() : null);
-  }, (err) => { showGate('Could not reach the booth. Check your connection and try again.<br><br><small>' + (err.message || err) + '</small>'); });
-
-  // Re-evaluate "online" on a timer even without new snapshots (freshness decays).
-  setInterval(() => { if (last !== null) render(last); }, 5000);
-
-  async function sendCmd(action) {
-    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+  } catch (e) { $('scanHint').textContent = 'Camera access is needed to scan. Allow it, or use your phone’s camera app.'; return; }
+  const video = $('video');
+  video.srcObject = scanStream; await video.play().catch(() => {});
+  $('scanFrame').classList.remove('hidden');
+  $('scanBtn').classList.add('hidden');
+  const det = new window.BarcodeDetector({ formats: ['qr_code'] });
+  scanning = true;
+  const tick = async () => {
+    if (!scanning) return;
     try {
-      await setDoc(cmdRef, { action, token: TOKEN, id, createdAt: Date.now() });
-    } catch (e) { toast('Send failed: ' + (e.message || e)); }
-  }
-
-  $('startBtn').addEventListener('click', () => { if ($('startBtn').disabled) return; sendCmd('start'); toast('Starting…'); });
-  $('cancelBtn').addEventListener('click', () => { if ($('cancelBtn').disabled) return; sendCmd('cancel'); toast('Cancelling…'); });
+      const codes = await det.detect(video);
+      for (const c of codes) {
+        const p = parsePair(c.rawValue || '');
+        if (p) { stopScan(); savePair(p); connect(p); return; }
+      }
+    } catch (_) {}
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
+function stopScan() {
+  scanning = false;
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  $('scanFrame').classList.add('hidden');
+  $('scanBtn').classList.remove('hidden');
+}
+
+// ── Connect + live status ──
+let statusUnsub = null, cur = null, lastAck = null, PAIR = null;
+const ONLINE_MS = 45000;
+const isOnline = (d) => d && d.lastSeen && (Date.now() - d.lastSeen) < ONLINE_MS;
+
+function connect(p) {
+  if (!p) return showScan(null);
+  PAIR = p;
+  show('consoleView');
+  if (statusUnsub) { try { statusUnsub(); } catch (_) {} }
+  const ref = doc(db(), 'events', p.e, 'remote', p.b);
+  statusUnsub = onSnapshot(ref, (snap) => render(snap.exists() ? snap.data() : null),
+    (err) => { $('gate').innerHTML = 'Could not reach the booth.<br><small>' + (err.message || err) + '</small>'; show('gate'); });
+  // decay "online" even without new snapshots
+  clearInterval(connect._t); connect._t = setInterval(() => { if (cur !== null) render(cur); }, 5000);
+  wireControls();
+}
+
+function render(d) {
+  cur = d;
+  if (d && d.token && d.token !== PAIR.t) {
+    $('gate').innerHTML = 'This remote link was <strong>revoked</strong>. On the booth open <strong>Remote</strong> again and scan the new code.<div class="stack" style="margin-top:14px;"><button class="btn" id="rescanBtn">Scan new code</button></div>';
+    show('gate'); $('rescanBtn').onclick = () => { clearPair(); showScan(null); };
+    return;
+  }
+  show('consoleView');
+  if (d && d.eventName) savePair({ ...PAIR, name: d.eventName });
+
+  const online = isOnline(d);
+  $('dot').className = 'dot ' + (online ? 'online' : 'offline');
+  $('onlineTxt').textContent = online ? 'Online' : 'Offline';
+  $('evName').textContent = (d && d.eventName) || 'Booth';
+  $('evSub').textContent = [(d && d.eventVenue) || '', 'Booth ' + PAIR.b.replace(/^dev_/, '').slice(0, 6).toUpperCase()].filter(Boolean).join(' · ');
+
+  const act = online ? ((d && d.activity) || 'idle') : 'offline';
+  const labels = { idle:'Idle · ready', capturing:'Taking photos', composing:'Building strip', preview:'On preview', closed:'Booth closed', unpaired:'Not paired', offline:'Offline' };
+  $('badge').className = 'badge ' + act;
+  $('badge').textContent = labels[act] || act;
+
+  const prints = (d && (d.printsLeft === null || d.printsLeft === undefined)) ? (d && d.printEnabled === false ? '—' : '∞') : String(d.printsLeft);
+  $('printsV').textContent = online ? prints : '—';
+  $('verV').textContent = (d && d.appVersion) ? ('v' + d.appVersion) : '—';
+
+  $('startBtn').disabled  = !online || act !== 'idle';
+  $('cancelBtn').disabled = !online || (act !== 'capturing' && act !== 'composing');
+  $('closeBtn').disabled  = !online || act === 'closed';
+  $('reopenBtn').disabled = !online || act !== 'closed';
+  $('closeBtn').style.display  = act === 'closed' ? 'none' : '';
+  $('reopenBtn').style.display = act === 'closed' ? '' : 'none';
+
+  if (d && d.lastCmdId && d.lastCmdId !== lastAck && d.lastCmdResult) {
+    lastAck = d.lastCmdId;
+    const r = d.lastCmdResult;
+    if (r === 'busy') toast('Booth is busy right now');
+    else if (r === 'unknown') toast('That control isn’t available');
+    else if (r === 'error') toast('The booth couldn’t do that');
+  }
+}
+
+async function sendCmd(extra) {
+  const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const ref = doc(db(), 'events', PAIR.e, 'remote', `${PAIR.b}_cmd`);
+  try { await setDoc(ref, { token: PAIR.t, id, createdAt: Date.now(), ...extra }); }
+  catch (e) { toast('Send failed: ' + (e.message || e)); }
+}
+
+function wireControls() {
+  $('cancelBtn').onclick = () => { if (!$('cancelBtn').disabled) { sendCmd({ action: 'cancel' }); toast('Cancelling…'); } };
+  $('closeBtn').onclick  = () => { if (!$('closeBtn').disabled)  { sendCmd({ action: 'close' });  toast('Closing booth…'); } };
+  $('reopenBtn').onclick = () => { if (!$('reopenBtn').disabled) { sendCmd({ action: 'reopen' }); toast('Reopening…'); } };
+  $('switchBtn').onclick = () => { if (statusUnsub) statusUnsub(); showScan(loadPair()); };
+  $('startBtn').onclick  = () => { if (!$('startBtn').disabled) openStartSheet(); };
+  $('sheetCancelBtn').onclick = () => $('startSheet').classList.remove('show');
+}
+
+// ── Start pick sheet ──
+let pickTpl = null, pickBd = null;
+function openStartSheet() {
+  const d = cur || {};
+  const tpls = d.templates || [];
+  const bds = d.backdrops || [];
+  const needTpl = tpls.length > 1;
+  const needBd = bds.length > 0;
+  // Nothing to choose → start immediately.
+  if (!needTpl && !needBd) { sendCmd({ action: 'start' }); toast('Starting…'); return; }
+
+  pickTpl = tpls[0] ? tpls[0].id : null;
+  pickBd = null;   // default: booth's default (first) backdrop
+
+  // Templates
+  $('tplGroup').classList.toggle('hidden', !needTpl);
+  if (needTpl) {
+    $('tplOpts').innerHTML = tpls.map(t =>
+      `<div class="opt" data-tpl="${esc(t.id)}"><span class="tick"></span><span class="name">${esc(t.name)}</span><span class="meta">${esc(t.size || '')}</span></div>`).join('');
+    $('tplOpts').querySelectorAll('.opt').forEach(o => o.onclick = () => { pickTpl = o.dataset.tpl; markSel('tplOpts', o); });
+  }
+  // Backdrops (+ optional Keep it real for smart mode)
+  $('bdGroup').classList.toggle('hidden', !needBd);
+  if (needBd) {
+    let html = '';
+    if (d.backdropSmart) html += `<div class="opt" data-bd="__none__"><span class="tick"></span><span class="name">Keep it real</span><span class="meta">no AI</span></div>`;
+    html += bds.map(b => `<div class="opt" data-bd="${esc(b.key)}"><span class="tick"></span><span class="name">${esc(b.name)}</span></div>`).join('');
+    $('bdOpts').innerHTML = html;
+    $('bdOpts').querySelectorAll('.opt').forEach(o => o.onclick = () => { pickBd = o.dataset.bd; markSel('bdOpts', o); });
+  }
+  // preselect first of each
+  if (needTpl) markSel('tplOpts', $('tplOpts').firstElementChild);
+  if (needBd)  { const first = $('bdOpts').firstElementChild; markSel('bdOpts', first); pickBd = first.dataset.bd; }
+
+  $('sheetStartBtn').onclick = () => {
+    $('startSheet').classList.remove('show');
+    const extra = { action: 'start' };
+    if (needTpl && pickTpl) extra.templateId = pickTpl;
+    if (needBd && pickBd) extra.backdropKey = pickBd;
+    sendCmd(extra); toast('Starting…');
+  };
+  $('startSheet').classList.add('show');
+}
+function markSel(groupId, el) { $(groupId).querySelectorAll('.opt').forEach(o => o.classList.remove('sel')); if (el) el.classList.add('sel'); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 </script>
 </body>
 </html>
