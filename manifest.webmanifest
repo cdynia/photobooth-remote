@@ -1,6 +1,6 @@
 {
-  "name": "BoothPilot — CyberColt Booth Remote",
-  "short_name": "BoothPilot",
+  "name": "CyberColt Photobooth Remote",
+  "short_name": "Booth Remote",
   "description": "Control the CyberColt photobooth from your phone.",
   "start_url": "./",
   "scope": "./",
