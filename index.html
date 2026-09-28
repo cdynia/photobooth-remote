@@ -325,10 +325,10 @@ $('refreshBtn').onclick=()=>location.reload();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 // Lock out pinch / double-tap zoom (iOS ignores maximum-scale) so the control
 // surface stays put like a real remote.
+// Block iOS pinch-zoom. Double-tap zoom is already handled by CSS
+// `touch-action: manipulation` — do NOT preventDefault touchend here, that
+// swallowed fast repeated taps (unresponsive phone keypad).
 document.addEventListener('gesturestart', e => e.preventDefault());
-document.addEventListener('dblclick', e => e.preventDefault(), { passive:false });
-let _lastTouch = 0;
-document.addEventListener('touchend', e => { const now = Date.now(); if (now - _lastTouch <= 320) e.preventDefault(); _lastTouch = now; }, { passive:false });
 
 const PAIR_KEY='ccpb_remote_pair';
 const savePair=(p)=>{ try{localStorage.setItem(PAIR_KEY,JSON.stringify(p));}catch(_){} };
