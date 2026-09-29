@@ -99,7 +99,11 @@
   .btn .t { font-size:1rem; letter-spacing:-0.01em; }
   .btn .s { font-size:0.66rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); }
   /* The one big contextual action (Start / Cancel / Ready for next / Reopen). */
-  .primary { min-height:74px; border-radius:24px; }
+  .primary { min-height:76px; border-radius:24px; }
+  .primary .ic { width:30px; height:30px; }
+  .primary .t { font-size:1.16rem; font-weight:800; }
+  /* Start reads as THE call to action: a soft accent glow lifts it off the stack. */
+  .btn.accent.primary { box-shadow:var(--shadow), 0 8px 26px color-mix(in srgb,var(--accent) 42%, transparent); }
   /* Secondary buttons read as a tidy row: icon beside a shorter label. */
   .grid2 { display:flex; gap:11px; }
   .grid2 .btn { flex:1; }
@@ -129,7 +133,6 @@
 
   .foot { display:flex; align-items:center; justify-content:space-between; padding:14px 4px 2px; }
   .foot .link { appearance:none; border:none; background:none; color:var(--faint); font-size:0.76rem; font-weight:600; cursor:pointer; padding:6px 2px; }
-  .foot .v { color:var(--faint); font-size:0.68rem; font-variant-numeric:tabular-nums; }
 
   /* Pairing */
   .center { flex:1; display:flex; flex-direction:column; justify-content:center; gap:14px; }
@@ -151,24 +154,31 @@
   .sheet { background:var(--surface); width:100%; max-width:420px; margin:0 auto; border-radius:24px 24px 0 0;
     padding:22px 20px calc(22px + env(safe-area-inset-bottom)); max-height:92vh; overflow-y:auto; border:1px solid var(--hair); }
   .sheet .grab { width:38px; height:4px; border-radius:999px; background:var(--hair-2); margin:0 auto 16px; }
+  .ov.show .sheet { animation:sheetUp 0.2s ease-out; }
+  @keyframes sheetUp { from { transform:translateY(14px); opacity:0.5; } to { transform:translateY(0); opacity:1; } }
+  /* Centered popup — for short action dialogs (dialer, print, confirm) */
+  .ov.dialog { align-items:center; }
+  .ov.dialog .sheet { width:calc(100% - 36px); max-width:360px; margin:auto; border-radius:24px;
+    max-height:88vh; padding:24px 22px calc(24px + env(safe-area-inset-bottom)); }
+  .ov.dialog .grab { display:none; }
+  .ov.dialog.show .sheet { animation:popIn 0.16s ease-out; }
+  @keyframes popIn { from { transform:scale(0.93); opacity:0; } to { transform:scale(1); opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .ov.show .sheet,.ov.dialog.show .sheet{ animation:none; } }
   .sheet h3 { margin:0 0 4px; font-size:1.22rem; letter-spacing:-0.02em; }
   .sheet .muted { margin-bottom:8px; }
   .lbl { font-size:0.64rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--faint); margin:16px 0 9px; font-weight:700; }
   .opt { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--hair); border-radius:14px; cursor:pointer; margin-bottom:9px; }
-  .opt.sel { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 10%, transparent); }
-  .opt .tick { width:20px; height:20px; border-radius:50%; border:2px solid var(--hair-2); flex:0 0 auto; }
-  .opt.sel .tick { border-color:var(--accent); background:var(--accent); }
+  .opt:active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 10%, transparent); }
   .opt .name { font-weight:700; } .opt .meta { color:var(--faint); font-size:0.74rem; margin-left:auto; }
   .bdthumb { width:52px; height:35px; border-radius:8px; object-fit:cover; flex:0 0 auto; border:1px solid var(--hair); background:var(--sunken); }
   .bdthumb.none { display:grid; place-items:center; color:var(--faint); font-weight:700; }
   /* Backdrop picker as a grid of larger preview cells */
   .bdgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
   .bdcell { border:1px solid var(--hair); border-radius:14px; overflow:hidden; cursor:pointer; background:var(--surface-2); position:relative; }
-  .bdcell.sel { border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%, transparent); }
+  .bdcell:active { border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%, transparent); }
   .bdcell img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; background:var(--sunken); }
   .bdcell .name { padding:9px 11px; font-weight:700; font-size:0.86rem; }
   .bdcell.none-cell { display:grid; place-items:center; min-height:118px; color:var(--dim); font-weight:700; }
-  .bdcell.sel::after { content:'✓'; position:absolute; top:7px; right:9px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:var(--accent-ink); display:grid; place-items:center; font-size:0.8rem; font-weight:900; }
 
   /* Dialer */
   .dialdisp { text-align:center; font-size:1.9rem; font-weight:800; letter-spacing:0.04em; font-variant-numeric:tabular-nums;
@@ -236,7 +246,7 @@
       </div>
 
       <div class="actions">
-        <button class="btn accent primary" id="startBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Start session</span><span class="s">tap to begin for the guest</span></button>
+        <button class="btn accent primary" id="startBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Start session</span><span class="s" id="startSub">Tap to begin for the guest</span></button>
         <button class="btn danger primary hidden" id="cancelPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="t">Cancel session</span></button>
         <button class="btn go primary hidden" id="reopenPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Reopen booth</span></button>
         <button class="btn accent primary hidden" id="nextPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 5l7 7-7 7M4 12h16"/></svg><span class="t">Ready for next guest</span><span class="s">clears the booth for the next session</span></button>
@@ -300,7 +310,7 @@
   </div></div>
 
   <!-- Print sheet -->
-  <div class="ov" id="printSheet"><div class="sheet"><div class="grab"></div>
+  <div class="ov dialog" id="printSheet"><div class="sheet"><div class="grab"></div>
     <h3>Print the strip</h3>
     <div class="muted" id="facesNote" style="display:none;"></div>
     <div class="lbl">Copies</div>
@@ -309,8 +319,8 @@
     <button class="cta sub" id="printCancelBtn" style="margin-top:10px;">Back</button>
   </div></div>
 
-  <!-- Text sheet (dialer) -->
-  <div class="ov" id="textSheet"><div class="sheet"><div class="grab"></div>
+  <!-- Text popup (dialer) -->
+  <div class="ov dialog" id="textSheet"><div class="sheet"><div class="grab"></div>
     <h3>Text the strip</h3><div class="muted">The number goes straight to the messaging service — never stored on the booth link.</div>
     <div class="dialdisp" id="dialDisp"><span class="plc">(555) 123-4567</span></div>
     <div class="dial" id="dialPad"></div>
@@ -318,8 +328,8 @@
     <button class="cta sub" id="textCancelBtn" style="margin-top:10px;">Back</button>
   </div></div>
 
-  <!-- End confirm sheet -->
-  <div class="ov" id="endSheet"><div class="sheet"><div class="grab"></div>
+  <!-- End confirm popup -->
+  <div class="ov dialog" id="endSheet"><div class="sheet"><div class="grab"></div>
     <h3>End this event?</h3><div class="muted">This unpairs the booth and returns it to the pairing screen. Only do this when the event is over.</div>
     <button class="cta" id="endGoBtn" style="margin-top:16px;background:var(--danger);color:#fff;">End event</button>
     <button class="cta sub" id="endCancelBtn" style="margin-top:10px;">Back</button>
@@ -577,6 +587,9 @@ function render(d){
   // contextual actions
   setPrimary(act==='closed'?'reopen':(act==='capturing'||act==='composing')?'cancel':act==='preview'?'next':'start');
   $('startBtn').disabled=!on||act!=='idle';
+  // Tell the operator what tapping Start does: straight to the booth, or a picker first.
+  const willPick = !!(d && ((d.templates && d.templates.length>1) || (d.backdrops && d.backdrops.length>0)));
+  $('startSub').textContent = !on ? 'Booth offline' : act!=='idle' ? 'Booth is busy' : willPick ? 'Choose the look, then start' : 'Tap to begin for the guest';
   $('cancelPrimary').disabled=!on;
   $('reopenPrimary').disabled=!on;
   $('nextPrimary').disabled=!on;
@@ -643,6 +656,10 @@ function wire(){
   $('stripsCloseBtn').onclick=()=>{ $('stripsSheet').classList.remove('show'); };   // keep the feed live for the Last-strip panel
   $('detailCloseBtn').onclick=()=>$('detailSheet').classList.remove('show');
   $('detailShareBtn').onclick=()=>{ const s=stripsCache.find(x=>x.id===detailId); if(s) shareStrip(s); };
+  // Tap the dimmed backdrop of a popup to dismiss it (only when the backdrop itself is clicked).
+  $('textSheet').onclick=(e)=>{ if(e.target===$('textSheet')) closeTextSheet(); };
+  $('printSheet').onclick=(e)=>{ if(e.target===$('printSheet')) $('printSheet').classList.remove('show'); };
+  $('endSheet').onclick=(e)=>{ if(e.target===$('endSheet')) $('endSheet').classList.remove('show'); };
   buildDialpad();
 }
 
