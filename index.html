@@ -527,7 +527,9 @@ function stopScan(){ scanning=false; if(scanStream){scanStream.getTracks().forEa
 // Connect
 let statusUnsub=null,cur=null,lastAck=null,PAIR=null;
 let stripsUnsub=null, stripsCache=[];
-let livePeer=null, liveUnsub=null, liveSession=null, liveSeen=null, liveOffered=false, livePing=null, liveTimeout=null;
+let livePeer=null, liveUnsub=null, liveSession=null, liveSeen=null, liveOffered=false, liveRemoteSet=false, livePing=null, liveTimeout=null;
+// Semver-ish compare: is version `v` >= `min`?
+function verGte(v,min){ const a=String(v||'0').split('.').map(n=>parseInt(n,10)||0),b=min.split('.').map(n=>parseInt(n,10)||0); for(let i=0;i<3;i++){ if((a[i]||0)>(b[i]||0))return true; if((a[i]||0)<(b[i]||0))return false; } return true; }
 const ONLINE_MS=45000; const online=(d)=>d&&d.lastSeen&&(Date.now()-d.lastSeen)<ONLINE_MS;
 function connect(p){
   if(!p) return showScan(null);
@@ -855,9 +857,17 @@ function setLiveStatus(msg, spinning){
 function openLiveView(){
   if(!PAIR || livePeer) return;
   buzz();
+  $('liveOverlay').classList.add('show');
+  // Live view needs the booth on v1.30.7+ — an older booth ignores the liveStart
+  // command and you'd just spin forever. Say so plainly instead.
+  if(!(cur && verGte(cur.appVersion,'1.30.7'))){
+    setLiveStatus('Live view needs booth v1.30.7 or newer'+(cur&&cur.appVersion?` (this booth is on v${cur.appVersion})`:'')+'. Reload the booth app, then try again.', false);
+    return;
+  }
+  if(typeof RTCPeerConnection==='undefined'){ setLiveStatus('This phone can’t do live video.', false); return; }
   const sess=`${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-  liveSession=sess; liveSeen=new Set(); liveOffered=false;
-  $('liveOverlay').classList.add('show'); setLiveStatus('Connecting to the booth…', true);
+  liveSession=sess; liveSeen=new Set(); liveOffered=false; liveRemoteSet=false;
+  setLiveStatus('Connecting to the booth…', true);
   const {db}=fb();
   const rtcRef=doc(db,'events',PAIR.e,'remote',`${PAIR.b}_rtc`);
   // Fresh doc for this session (clears any stale offer/answer/ICE from before).
@@ -866,25 +876,29 @@ function openLiveView(){
   catch(e){ setLiveStatus('This phone can’t do live video.', false); return; }
   livePeer.addTransceiver('video',{ direction:'recvonly' });
   livePeer.onicecandidate=(e)=>{ if(e.candidate){ setDoc(rtcRef,{ iceP:arrayUnion(JSON.stringify(e.candidate.toJSON())) },{merge:true}).catch(()=>{}); } };
-  livePeer.ontrack=(e)=>{ const v=$('liveVideo'); if(v && e.streams && e.streams[0]){ v.srcObject=e.streams[0]; v.play&&v.play().catch(()=>{}); setLiveStatus(null); } };
-  livePeer.onconnectionstatechange=()=>{ if(!livePeer) return; const s=livePeer.connectionState;
+  livePeer.ontrack=(e)=>{ console.log('[live] track received'); const v=$('liveVideo'); if(v && e.streams && e.streams[0]){ v.srcObject=e.streams[0]; v.play&&v.play().catch(()=>{}); setLiveStatus(null); } };
+  livePeer.onconnectionstatechange=()=>{ if(!livePeer) return; const s=livePeer.connectionState; console.log('[live] conn state:', s);
     if(s==='connected') setLiveStatus(null);
     else if(s==='failed') setLiveStatus('Couldn’t connect. Put this phone on the booth’s Wi-Fi and try again.', false); };
   // Read the booth's offer + ICE.
   liveUnsub=onSnapshot(rtcRef, async (snap)=>{
     const d=snap.exists()?snap.data():null; if(!d||d.session!==liveSession||!livePeer) return;
-    if(d.state==='unavailable'){ setLiveStatus('The booth camera isn’t running right now.', false); return; }
-    if(d.offer && !liveOffered){ liveOffered=true;
-      try{ await livePeer.setRemoteDescription(d.offer); const ans=await livePeer.createAnswer(); await livePeer.setLocalDescription(ans);
+    if(d.state==='unavailable'){ setLiveStatus('The booth camera isn’t running right now — open a session on the booth and try again.', false); return; }
+    if(d.offer && !liveOffered){ liveOffered=true; console.log('[live] offer received → answering');
+      try{ await livePeer.setRemoteDescription(d.offer); liveRemoteSet=true; const ans=await livePeer.createAnswer(); await livePeer.setLocalDescription(ans);
         await setDoc(rtcRef,{ answer:{type:ans.type,sdp:ans.sdp} },{merge:true}); }
-      catch(err){ console.warn('answer failed',err); }
+      catch(err){ console.warn('[live] answer failed',err); liveOffered=false; }
     }
-    if(Array.isArray(d.iceB)) for(const c of d.iceB){ if(liveSeen.has(c))continue; liveSeen.add(c); try{ await livePeer.addIceCandidate(JSON.parse(c)); }catch(_){} }
-  }, ()=>{});
+    // Add ICE only once the remote description is set, and only mark a candidate
+    // "seen" AFTER it actually applies (so a transient failure can retry).
+    if(liveRemoteSet && Array.isArray(d.iceB)) for(const c of d.iceB){ if(liveSeen.has(c))continue;
+      try{ await livePeer.addIceCandidate(JSON.parse(c)); liveSeen.add(c); }catch(err){ console.warn('[live] addIce',err); } }
+  }, (err)=>{ console.warn('[live] rtc snapshot error',err); });
   // Ask the booth to start, then keep the encode alive with silent pings.
+  console.log('[live] sending liveStart', sess);
   sendCmd({action:'liveStart', sessionId:sess});
   clearInterval(livePing); livePing=setInterval(()=>sendCmd({action:'livePing', sessionId:sess},{silent:true}), 4000);
-  clearTimeout(liveTimeout); liveTimeout=setTimeout(()=>{ if(livePeer && livePeer.connectionState!=='connected') setLiveStatus('Still connecting… make sure this phone is on the booth’s Wi-Fi.', false); }, 13000);
+  clearTimeout(liveTimeout); liveTimeout=setTimeout(()=>{ if(livePeer && livePeer.connectionState!=='connected' && !liveOffered) setLiveStatus('The booth isn’t answering. Make sure it shows v1.30.7 and is on the same Wi-Fi, then try again.', false); }, 13000);
 }
 function closeLiveView(){
   if(liveSession) sendCmd({action:'liveStop', sessionId:liveSession});
@@ -892,7 +906,7 @@ function closeLiveView(){
   if(liveUnsub){ try{liveUnsub();}catch(_){} liveUnsub=null; }
   if(livePeer){ try{livePeer.close();}catch(_){} livePeer=null; }
   const v=$('liveVideo'); if(v){ try{ v.srcObject=null; }catch(_){} }
-  liveSession=null; liveOffered=false;
+  liveSession=null; liveOffered=false; liveRemoteSet=false;
   $('liveOverlay').classList.remove('show');
 }
 
