@@ -52,7 +52,14 @@
   .wm { font-family:var(--brand); display:flex; align-items:baseline; gap:6px; line-height:1; }
   .wm .b1 { font-weight:800; font-size:1.06rem; letter-spacing:-0.01em; }
   .wm .b2 { font-weight:600; font-size:1.06rem; letter-spacing:-0.01em; color:var(--accent); }
-  .barbtns { display:flex; gap:9px; }
+  .barbtns { display:flex; gap:9px; align-items:center; }
+  /* Always-visible link-health chip (phone ↔ booth sync state) */
+  .linkchip { display:inline-flex; align-items:center; gap:6px; padding:0 2px; font-size:0.72rem; font-weight:700; color:var(--dim); white-space:nowrap; }
+  .linkchip .ld { width:8px; height:8px; border-radius:50%; background:var(--faint); flex:0 0 auto; }
+  .linkchip.live .ld { background:var(--ok); box-shadow:0 0 7px color-mix(in srgb,var(--ok) 60%, transparent); }
+  .linkchip.warn { color:var(--gold); } .linkchip.warn .ld { background:var(--gold); animation:statpulse 1.3s ease-in-out infinite; }
+  .linkchip.bad { color:var(--danger); } .linkchip.bad .ld { background:var(--danger); }
+  @media (max-width:379px){ .linkchip #linkTxt { display:none; } }
   .ghosticon { appearance:none; border:1px solid var(--hair); background:var(--surface); color:var(--dim);
     width:46px; height:46px; border-radius:15px; display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); position:relative; }
   .ghosticon svg { width:21px; height:21px; }
@@ -258,6 +265,7 @@
     <div class="bar">
       <div class="wm"><span class="b1">CyberColt</span><span class="b2">Remote</span></div>
       <div class="barbtns">
+        <span class="linkchip hidden" id="linkChip" aria-live="polite"><span class="ld" id="linkDot"></span><span id="linkTxt">Live</span></span>
         <button class="ghosticon" id="alertBtn" aria-label="Alerts" title="Alerts"><svg id="alertIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
         <button class="ghosticon" id="moreBtn" aria-label="Booth controls" title="Booth controls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       </div>
@@ -468,7 +476,15 @@ const buzz=(ms=12)=>{ try{ navigator.vibrate && navigator.vibrate(ms); }catch(_)
 let wakeLock=null;
 async function acquireWake(){ try{ if('wakeLock' in navigator && document.visibilityState==='visible' && !wakeLock){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{ wakeLock=null; }); } }catch(_){} }
 function releaseWake(){ try{ if(wakeLock) wakeLock.release(); }catch(_){} wakeLock=null; }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && !$('consoleView').classList.contains('hidden')) acquireWake(); });
+// Phone woke / app returned to foreground: re-grab the wake lock and, if the live
+// data looks stale (socket may have died while backgrounded), re-subscribe now.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  if($('consoleView').classList.contains('hidden')) return;
+  acquireWake();
+  if(PAIR && (!_snapAt || (Date.now()-_snapAt)>8000)){ _reconnDelay=0; clearTimeout(_reconnTimer); _reconnTimer=null; subscribeStatus(); }
+  updateLinkUI();
+});
 
 // ── Top banner (reconnect + active alert) ──
 let _alertBanner=null, _netBanner=null;
@@ -476,8 +492,11 @@ function renderBanner(){ const el=$('netBanner'); const b=_alertBanner || (_netB
   if(!b){ el.classList.remove('show'); return; } el.textContent=b.text; el.className='netbanner '+b.kind+' show'; }
 function setAlertBanner(text,kind){ _alertBanner=text?{text,kind:kind||'err'}:null; renderBanner(); }
 function setNetBanner(text){ _netBanner=text||null; renderBanner(); }
-window.addEventListener('offline',()=>setNetBanner('You’re offline — reconnecting…'));
-window.addEventListener('online', ()=>setNetBanner(null));
+// Link health drives the banner + header chip (wired after the connection manager below).
+window.addEventListener('offline', ()=>updateLinkUI());
+window.addEventListener('online', ()=>{ if(PAIR){ _reconnDelay=0; clearTimeout(_reconnTimer); _reconnTimer=null; subscribeStatus(); } updateLinkUI(); });
+// Never let a stray rejection wedge the UI — log and move on.
+window.addEventListener('unhandledrejection', (e)=>{ try{ console.warn('[remote] unhandled rejection', (e.reason&&e.reason.message)||e.reason); }catch(_){} });
 
 // ── Pocket alerts — opt-in notifications + a persistent banner for booth/printer
 //    trouble, so the attendant can pocket the phone and only look when pinged. ──
@@ -552,7 +571,7 @@ function fb(){ if(!_app){ _app=initializeApp(firebaseConfig); _db=getFirestore(_
 
 
 function showScan(saved){
-  releaseWake(); setAlertBanner(null);
+  releaseWake(); setAlertBanner(null); updateLinkUI();
   showView('scanView');
   $('resumeCard').classList.toggle('hidden',!saved);
   if (saved&&saved.name) $('resumeName').textContent=saved.name;
@@ -585,28 +604,81 @@ async function startScan(){
 }
 function stopScan(){ scanning=false; if(scanStream){scanStream.getTracks().forEach(t=>t.stop()); scanStream=null;} $('scanFrame').classList.add('hidden'); $('scanBtn').classList.remove('hidden'); }
 
-// Connect
+// ── Connection manager — resilient to flaky venue Wi-Fi, backgrounded phones,
+//    screen-lock/wake, and the booth briefly dropping. Auto-reconnects with
+//    backoff, runs a staleness watchdog, and surfaces link health (no silent
+//    failures). The Firestore paths / status fields are unchanged. ──
 let statusUnsub=null,cur=null,lastAck=null,PAIR=null;
 let stripsUnsub=null, stripsCache=[];
+let _snapAt=0, _reconnDelay=0, _reconnTimer=null, _heartbeat=null;
 const ONLINE_MS=45000; const online=(d)=>d&&d.lastSeen&&(Date.now()-d.lastSeen)<ONLINE_MS;
+
+function teardownConn(){
+  if(statusUnsub){ try{statusUnsub();}catch(_){} statusUnsub=null; }
+  stopStripsWatch();
+  clearInterval(_heartbeat); _heartbeat=null;
+  clearTimeout(_reconnTimer); _reconnTimer=null;
+  clearTimeout(_pendingTimer); _pendingCmd=null;
+}
+
+// Link health is about the phone↔Firestore connection only. A booth that is
+// simply powered off is shown by the big status pill + alert banner, NOT here —
+// so the chip never falsely blinks "Reconnecting" during normal booth downtime.
+function linkState(){
+  if(!PAIR) return null;
+  if(!navigator.onLine) return 'offline';   // phone itself has no network
+  if(!_snapAt || _reconnTimer) return 'reconnecting';   // connecting, or a reconnect is in flight
+  return 'live';
+}
+function updateLinkUI(){
+  const chip=$('linkChip'); if(!chip) return;
+  const st=linkState();
+  if(st===null){ chip.classList.add('hidden'); setNetBanner(null); return; }
+  chip.classList.remove('hidden');
+  if(st==='live'){ chip.className='linkchip live'; $('linkTxt').textContent='Live'; setNetBanner(null); }
+  else if(st==='reconnecting'){ chip.className='linkchip warn'; $('linkTxt').textContent='Reconnecting'; setNetBanner('Reconnecting to the booth…'); }
+  else { chip.className='linkchip bad'; $('linkTxt').textContent='Offline'; setNetBanner('Phone is offline — reconnecting automatically'); }
+}
+
+// Re-subscribe to the booth's live status. Safe to call repeatedly; it always
+// tears down any previous listener first.
+function subscribeStatus(){
+  if(!PAIR) return;
+  if(statusUnsub){ try{statusUnsub();}catch(_){} statusUnsub=null; }
+  const {db}=fb();
+  statusUnsub=onSnapshot(doc(db,'events',PAIR.e,'remote',PAIR.b),
+    s=>{ _snapAt=Date.now(); _reconnDelay=0; clearTimeout(_reconnTimer); _reconnTimer=null; render(s.exists()?s.data():null); },
+    err=>{ console.warn('[remote] status snapshot error', err&&err.message); scheduleReconnect(); });
+}
+function scheduleReconnect(){
+  if(!PAIR || _reconnTimer) return;
+  _reconnDelay = Math.min(_reconnDelay ? _reconnDelay*2 : 1500, 20000);  // exponential backoff, capped
+  updateLinkUI();
+  _reconnTimer=setTimeout(()=>{ _reconnTimer=null; subscribeStatus(); }, _reconnDelay);
+}
+function heartbeat(){
+  if(!PAIR) return;
+  if(cur!==null) render(cur);     // refresh relative freshness + disabled states as time passes
+  updateLinkUI();
+  // Watchdog: the booth was recently alive but snapshots have stopped while the
+  // phone still has network → the listener is likely a zombie (common after the
+  // phone sleeps/wakes). Force a fresh one. We gate on online(cur) so a booth
+  // that is genuinely powered off doesn't cause pointless reconnect churn.
+  if(navigator.onLine && _snapAt && (Date.now()-_snapAt)>18000 && !_reconnTimer && online(cur)) scheduleReconnect();
+}
+
 function connect(p){
   if(!p) return showScan(null);
-  PAIR=p; showView('consoleView');
-  if(statusUnsub){ try{statusUnsub();}catch(_){} }
-  // Reset + re-arm the live strips feed for THIS booth (may be a different event).
-  stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden');
-  const {db}=fb();
-  statusUnsub=onSnapshot(doc(db,'events',p.e,'remote',p.b),
-    s=>{ setNetBanner(null); render(s.exists()?s.data():null); },
-    err=>{ // Don't dump to a dead-end screen on a blip — show a reconnect banner and retry.
-      console.warn('[remote] status snapshot error', err&&err.message);
-      setNetBanner('Reconnecting to the booth…');
-      clearTimeout(connect._retry); connect._retry=setTimeout(()=>{ if(PAIR) connect(PAIR); }, 4000);
-    });
-  acquireWake();
-  clearInterval(connect._t); connect._t=setInterval(()=>{ if(cur!==null) render(cur); },5000);
+  teardownConn();
+  PAIR=p; cur=null; lastAck=null; _pendingCmd=null; _snapAt=0; _reconnDelay=0;
+  stripsCache=[]; $('lastSess').classList.add('hidden');
+  showView('consoleView');
   wire();
+  subscribeStatus();
   startStripsWatch();   // keep the strip feed hot the whole time we're connected
+  acquireWake();
+  _heartbeat=setInterval(heartbeat, 3000);
+  updateLinkUI();
   toast('Connected — you’re in control');
 }
 
@@ -620,9 +692,9 @@ function setPrimary(which){ // 'start' | 'cancel' | 'reopen' | 'next'
 function render(d){
   cur=d;
   if (d&&d.token&&d.token!==PAIR.t){
-    stopStripsWatch(); $('lastSess').classList.add('hidden');
+    teardownConn(); $('lastSess').classList.add('hidden');
     $('gate').innerHTML='This remote link was <b>revoked</b>. On the booth open <b>Remote</b> again and scan the new code.<div style="margin-top:14px;"><button class="cta" id="rescanBtn">Scan new code</button></div>';
-    showView('gate'); $('rescanBtn').onclick=()=>{ clearPair(); showScan(null); }; return;
+    showView('gate'); $('rescanBtn').onclick=()=>{ clearPair(); PAIR=null; updateLinkUI(); showScan(null); }; return;
   }
   showView('consoleView');
   if (d&&d.eventName) savePair({...PAIR,name:d.eventName});
@@ -688,29 +760,40 @@ function render(d){
   const canClose=on&&(act==='idle'||act==='preview');
   $('closeLink').style.display=canClose?'':'none';
 
-  if (d&&d.lastCmdId&&d.lastCmdId!==lastAck&&d.lastCmdResult){
-    lastAck=d.lastCmdId; const r=d.lastCmdResult;
-    // Command came back → clear the "did it land?" timeout.
+  // The booth echoes the id of the command it processed. Clear the in-flight
+  // "did it land?" guard on ANY ack — not only when a result string is present
+  // (a successful command with no result must not trip the no-response toast).
+  if (d&&d.lastCmdId&&d.lastCmdId!==lastAck){
+    lastAck=d.lastCmdId;
     if(_pendingCmd===d.lastCmdId){ clearTimeout(_pendingTimer); _pendingCmd=null; }
+    const r=d.lastCmdResult;
     if(r==='busy') toast('Booth is busy right now');
     else if(r==='unavailable') toast('Not available on this screen');
     else if(r==='error') toast('The booth couldn’t do that');
   }
   updateLastSession();   // keep the bottom "Last strip" panel in sync with booth state
   checkAlerts(d);        // pocket alerts + the persistent trouble banner
+  updateLinkUI();        // keep the link-health chip + banner honest
 }
 
 // Every command is confirmed by the booth writing lastCmdId back. Track the one
 // in flight so a booth that never answers surfaces a clear warning instead of a
 // silent dead button.
-let _pendingCmd=null, _pendingTimer=null;
+let _pendingCmd=null, _pendingTimer=null, _lastSend={action:null,at:0};
 async function sendCmd(extra){
+  if(!PAIR){ toast('Not connected to a booth'); return; }
+  const action=extra&&extra.action, now=Date.now();
+  // Debounce accidental double-taps of the SAME action — a single command doc is
+  // shared with the booth, so a frantic double-tap could otherwise overwrite or
+  // re-fire a command and wedge state. Distinct actions (e.g. Start→Cancel) pass.
+  if(action && action===_lastSend.action && (now-_lastSend.at)<900){ buzz(6); return; }
+  _lastSend={action, at:now};
   buzz();
-  const id=`${Date.now()}_${Math.random().toString(36).slice(2,8)}`; const {db}=fb();
+  const id=`${now}_${Math.random().toString(36).slice(2,8)}`; const {db}=fb();
   _pendingCmd=id; clearTimeout(_pendingTimer);
-  _pendingTimer=setTimeout(()=>{ if(_pendingCmd===id){ _pendingCmd=null; toast('Booth didn’t respond — is it online?'); } }, 7000);
-  try{ await setDoc(doc(db,'events',PAIR.e,'remote',`${PAIR.b}_cmd`),{token:PAIR.t,id,createdAt:Date.now(),...extra}); }
-  catch(e){ toast('Send failed'); if(_pendingCmd===id){ _pendingCmd=null; clearTimeout(_pendingTimer); } }
+  _pendingTimer=setTimeout(()=>{ if(_pendingCmd===id){ _pendingCmd=null; toast('Booth didn’t respond — check it’s online'); } }, 8000);
+  try{ await setDoc(doc(db,'events',PAIR.e,'remote',`${PAIR.b}_cmd`),{token:PAIR.t,id,createdAt:now,...extra}); }
+  catch(e){ console.warn('[remote] send failed', e&&e.message); toast('Couldn’t send — try again'); if(_pendingCmd===id){ _pendingCmd=null; clearTimeout(_pendingTimer); } }
 }
 function wire(){
   $('cancelPrimary').onclick=()=>{ if(!$('cancelPrimary').disabled){ sendCmd({action:'cancel'}); toast('Cancelling…'); } };
@@ -725,7 +808,7 @@ function wire(){
   $('printBtn').onclick=()=>{ if(!$('printBtn').disabled) openPrintSheet(); };
   $('textBtn').onclick=()=>{ if(!$('textBtn').disabled) openTextSheet(); };
   $('retakeBtn').onclick=()=>{ if(!$('retakeBtn').disabled){ sendCmd({action:'retake'}); toast('Retaking…'); } };
-  $('switchBtn').onclick=()=>{ $('moreSheet').classList.remove('show'); if(statusUnsub) statusUnsub(); stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden'); releaseWake(); setAlertBanner(null); setNetBanner(null); showScan(loadPair()); };
+  $('switchBtn').onclick=()=>{ $('moreSheet').classList.remove('show'); teardownConn(); stripsCache=[]; cur=null; PAIR=null; lastAck=null; $('lastSess').classList.add('hidden'); releaseWake(); setAlertBanner(null); setNetBanner(null); updateLinkUI(); showScan(loadPair()); };
   $('sheetCancelBtn').onclick=()=>$('startSheet').classList.remove('show');
   $('printCancelBtn').onclick=()=>$('printSheet').classList.remove('show');
   $('textCancelBtn').onclick=()=>closeTextSheet();
