@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0d0f13">
+<meta name="theme-color" content="#0b0d12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Booth Remote">
@@ -12,202 +12,241 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <title>CyberColt Photobooth Remote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#0d0f13; --surface:#161920; --surface-2:#1e222b; --sunken:#0a0c10;
-    --hair:rgba(255,255,255,0.07); --hair-2:rgba(255,255,255,0.12);
-    --ink:#eef0ee; --dim:#9aa1ac; --faint:#646b76;
-    --accent:#b6d64a; --accent-ink:#0d0f13; --gold:#e3c05a;
-    --danger:#e57a70; --ok:#63b06a; --info:#6babe6;
-    --shadow:0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.28);
-    --radius:20px;
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1c2029; --sunken:#080a0e;
+    --hair:rgba(255,255,255,0.07); --hair-2:rgba(255,255,255,0.13);
+    --ink:#eef1ee; --dim:#98a0ab; --faint:#616875;
+    --accent:#b6d64a; --accent-ink:#0b0d12; --gold:#e8c45a;
+    --danger:#ef6f64; --ok:#6cc46f; --info:#5fb4ef;
+    --shadow:0 1px 2px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.34);
+    --radius:22px;
+    --font:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    --brand:'Unbounded',var(--font);
   }
   :root[data-theme="light"] {
-    --bg:#e9ebef; --surface:#ffffff; --surface-2:#f3f5f8; --sunken:#e4e7ec;
-    --hair:rgba(0,0,0,0.08); --hair-2:rgba(0,0,0,0.14);
-    --ink:#171a20; --dim:#5c636d; --faint:#98a0aa;
-    --accent:#8bb327; --accent-ink:#ffffff; --gold:#b8942a;
-    --shadow:0 1px 2px rgba(20,25,35,0.06), 0 10px 30px rgba(20,25,35,0.1);
+    --bg:#eceef2; --surface:#ffffff; --surface-2:#f2f4f8; --sunken:#e3e7ec;
+    --hair:rgba(0,0,0,0.08); --hair-2:rgba(0,0,0,0.15);
+    --ink:#141820; --dim:#59616c; --faint:#949ca7;
+    --accent:#7ba11f; --accent-ink:#ffffff; --gold:#a9841f;
+    --danger:#d8584c; --ok:#3f9a46; --info:#2f84cf;
+    --shadow:0 1px 2px rgba(20,25,35,0.06), 0 12px 34px rgba(20,25,35,0.12);
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
   html,body { margin:0; height:100%; touch-action:manipulation; overscroll-behavior:none; }
   body {
-    background:var(--bg); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); font-family:var(--font);
     -webkit-font-smoothing:antialiased; height:100dvh; overflow:hidden;
     display:flex; flex-direction:column; align-items:center;
-    padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom));
+    padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom));
   }
-  .app { width:100%; max-width:420px; height:100%; display:flex; flex-direction:column; }
+  .app { width:100%; max-width:430px; height:100%; display:flex; flex-direction:column; min-height:0; }
+  button { font-family:inherit; }
+  button:focus-visible, .cta:focus-visible, .ghosticon:focus-visible { outline:2.5px solid var(--accent); outline-offset:2px; }
 
-  /* Top bar */
-  .bar { display:flex; align-items:center; justify-content:space-between; padding:2px 2px 16px; }
-  .wm { display:flex; align-items:baseline; gap:7px; font-weight:800; font-size:1.02rem; letter-spacing:-0.02em; }
-  .wm b { font-weight:800; }
-  .wm .tag { font-weight:700; font-size:0.56rem; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); }
+  /* ── Top bar: brand lockup + live controls ── */
+  .bar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 2px 14px; flex:0 0 auto; }
+  .wm { font-family:var(--brand); display:flex; align-items:baseline; gap:6px; line-height:1; }
+  .wm .b1 { font-weight:800; font-size:1.06rem; letter-spacing:-0.01em; }
+  .wm .b2 { font-weight:600; font-size:1.06rem; letter-spacing:-0.01em; color:var(--accent); }
+  .barbtns { display:flex; gap:9px; }
   .ghosticon { appearance:none; border:1px solid var(--hair); background:var(--surface); color:var(--dim);
-    width:40px; height:40px; border-radius:13px; display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); }
-  .ghosticon svg { width:19px; height:19px; }
+    width:46px; height:46px; border-radius:15px; display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); position:relative; }
+  .ghosticon svg { width:21px; height:21px; }
+  .ghosticon.on { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .ghosticon.on::after { content:""; position:absolute; top:9px; right:9px; width:7px; height:7px; border-radius:50%; background:var(--accent-ink); }
 
-  /* Status / hero */
-  .hero { background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
-  .hero-row { display:flex; gap:16px; align-items:flex-start; }
-  .thumb { width:118px; flex:0 0 auto; border-radius:12px; background:var(--sunken);
-    border:1px solid var(--hair); overflow:hidden; display:grid; place-items:center; min-height:120px; max-height:min(42vh,260px); padding:6px; }
-  .thumb img { max-width:100%; max-height:min(40vh,248px); width:auto; height:auto; object-fit:contain; display:block; }
-  .thumb .ph { color:var(--faint); display:grid; place-items:center; gap:8px; }
-  .thumb .ph svg { width:34px; height:34px; }
-  .thumb .ph .cap { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; }
-  .spinner { width:30px; height:30px; border-radius:50%; border:3px solid var(--hair-2); border-top-color:var(--accent); animation:spin 0.8s linear infinite; }
+  /* ── Console: scrollable glance area + pinned action dock ── */
+  #consoleView { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .scroll { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:12px; -webkit-overflow-scrolling:touch; }
+
+  /* Hero: the booth as one object — big glanceable state on top */
+  .hero { background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); flex:0 0 auto; }
+  .status { display:flex; flex-direction:column; }
+  /* The ONE bold thing on the page: a big color-coded state word readable across a dim room. */
+  .pill { display:inline-flex; align-items:center; gap:11px; align-self:flex-start; padding:0; background:none; border:none;
+    font-family:var(--font); font-weight:800; font-size:1.5rem; letter-spacing:-0.025em; color:var(--accent); }
+  .pill .dot { width:13px; height:13px; border-radius:50%; background:currentColor; flex:0 0 auto;
+    box-shadow:0 0 0 0 color-mix(in srgb,currentColor 55%, transparent); }
+  .pill.ready { color:var(--info); } .pill.busy { color:var(--gold); } .pill.off,.pill.closed { color:var(--danger); }
+  .pill .dot { animation:statpulse 2.4s ease-in-out infinite; }
+  .pill.off .dot { animation:none; }
+  @keyframes statpulse { 0%,100% { box-shadow:0 0 0 0 color-mix(in srgb,currentColor 50%, transparent); } 50% { box-shadow:0 0 0 7px color-mix(in srgb,currentColor 0%, transparent); } }
+  @media (prefers-reduced-motion:reduce){ .pill .dot { animation:none; } }
+  .ev { font-size:1.46rem; font-weight:800; letter-spacing:-0.025em; line-height:1.14; margin-top:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .venue { color:var(--dim); font-size:0.82rem; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Live strip preview — present only when there is something to see (collapses when idle) */
+  .thumb { width:100%; border-radius:16px; background:var(--sunken); border:1px solid var(--hair); overflow:hidden;
+    display:grid; place-items:center; margin-top:16px; padding:10px; min-height:132px; max-height:min(40vh,360px); }
+  .thumb.empty { display:none; }
+  .thumb img { max-width:100%; max-height:min(38vh,340px); width:auto; height:auto; object-fit:contain; display:block; border-radius:8px; }
+  .thumb .ph { color:var(--faint); display:grid; place-items:center; gap:10px; }
+  .thumb .ph svg { width:36px; height:36px; }
+  .thumb .ph .cap { font-size:0.74rem; font-weight:600; color:var(--dim); }
+  .spinner { width:32px; height:32px; border-radius:50%; border:3px solid var(--hair-2); border-top-color:var(--accent); animation:spin 0.8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  .hero-main { min-width:0; flex:1; }
-  .hero .ev { font-size:1.32rem; font-weight:800; letter-spacing:-0.02em; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .hero .venue { color:var(--faint); font-size:0.78rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pill { display:inline-flex; align-items:center; gap:7px; margin-top:12px; padding:6px 12px; border-radius:999px;
-    background:var(--surface-2); border:1px solid var(--hair); font-size:0.78rem; font-weight:700; }
-  .pill .dot { width:8px; height:8px; border-radius:50%; background:var(--faint); }
-  .pill .dot.online { background:var(--ok); box-shadow:0 0 8px color-mix(in srgb,var(--ok) 70%, transparent); }
-  .pill .dot.offline { background:var(--danger); }
-  .pill.busy { color:var(--gold); } .pill.busy .dot { background:var(--gold); box-shadow:0 0 8px color-mix(in srgb,var(--gold) 60%, transparent); }
-  .pill.ready { color:var(--ok); } .pill.closed,.pill.off { color:var(--danger); }
+
+  /* Scoreboard — glanceable event stats */
+  .metaline { display:flex; gap:20px; margin-top:18px; padding-top:16px; border-top:1px solid var(--hair); }
+  .stat { font-size:0.66rem; color:var(--faint); font-weight:600; }
+  .stat b { display:block; color:var(--ink); font-weight:800; font-size:1.3rem; letter-spacing:-0.02em; margin-bottom:2px; font-variant-numeric:tabular-nums; }
+  .stat.ver { margin-left:auto; text-align:right; }
+  .health { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .hchip { display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:999px; background:var(--surface-2); border:1px solid var(--hair); font-size:0.74rem; font-weight:600; color:var(--dim); }
+  .hchip .hd { width:7px; height:7px; border-radius:50%; background:var(--faint); }
+  .hchip.ok .hd { background:var(--ok); } .hchip.bad .hd { background:var(--danger); } .hchip.bad { color:var(--danger); }
+
+  /* Last-strip panel — finish the previous guest while a new session runs */
+  .lastsess { flex:0 0 auto; background:var(--surface); border:1px solid var(--hair); border-radius:18px; padding:12px 13px; display:flex; align-items:center; gap:13px; box-shadow:var(--shadow); }
+  .lastsess .ls-thumb { width:46px; height:69px; border-radius:9px; object-fit:cover; background:var(--sunken); border:1px solid var(--hair); flex:0 0 auto; cursor:zoom-in; }
+  .lastsess .ls-info { min-width:0; flex:1; }
+  .lastsess .ls-t { font-weight:800; font-size:0.92rem; letter-spacing:-0.01em; }
+  .lastsess .ls-s { color:var(--faint); font-size:0.72rem; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lastsess .ls-btns { display:flex; gap:9px; flex:0 0 auto; }
+  .lastsess .ls-btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface-2); color:var(--ink); border-radius:13px;
+    min-height:46px; padding:0 14px; font-weight:700; font-size:0.82rem; display:flex; align-items:center; gap:6px; cursor:pointer; box-shadow:var(--shadow); }
+  .lastsess .ls-btn:active { transform:translateY(1px); }
+  .lastsess .ls-btn svg { width:17px; height:17px; }
+  .lastsess .ls-btn.print { color:var(--info); } .lastsess .ls-btn.text { color:var(--ok); }
+  .lastsess .ls-btn:disabled { opacity:0.4; cursor:not-allowed; box-shadow:none; }
+
+  /* ── Action dock — pinned to the thumb zone; the primary button never moves ── */
+  .dock { flex:0 0 auto; display:flex; flex-direction:column; gap:11px; padding-top:13px; margin-top:4px; }
+  .btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface); color:var(--ink); border-radius:18px;
+    font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+    box-shadow:var(--shadow); transition:transform 0.07s ease, filter 0.15s ease; width:100%; }
+  .btn:active { transform:translateY(1px) scale(0.995); }
+  .btn:disabled { opacity:0.34; cursor:not-allowed; box-shadow:none; }
+  .btn .ic { width:22px; height:22px; flex:0 0 auto; }
+  .btn .t { font-size:1rem; letter-spacing:-0.01em; }
+  .btn .s { display:none; }
+  /* The one big contextual action (Start / Cancel / Ready for next / Reopen). */
+  .primary { flex-direction:column; gap:3px; min-height:78px; border-radius:22px; padding:12px; }
+  .primary .ic { width:28px; height:28px; }
+  .primary .t { font-size:1.2rem; font-weight:800; }
+  .primary .s { display:block; font-size:0.72rem; font-weight:600; letter-spacing:0.01em; color:var(--dim); text-transform:none; }
+  .btn.accent { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.accent .s { color:color-mix(in srgb,var(--accent-ink) 64%, transparent); }
+  .btn.accent.primary { box-shadow:var(--shadow), 0 10px 30px color-mix(in srgb,var(--accent) 44%, transparent); }
+  .btn.danger { color:var(--danger); } .btn.danger.primary { border-color:color-mix(in srgb,var(--danger) 45%, transparent); }
+  .btn.go { color:var(--ok); } .btn.go.primary { background:var(--ok); color:#06160a; border-color:transparent; }
+  .btn.go.primary .s { color:rgba(6,22,10,0.62); }
+  .btn.info { color:var(--info); }
+  /* Finishing row (Print / Text / Retake) — equal columns, in reach above the primary */
+  .grid2 { display:flex; gap:11px; }
+  .grid2 .btn { flex:1; min-height:56px; border-radius:16px; }
+  .grid2 .btn .ic { width:20px; height:20px; }
+  .grid2 .btn .t { font-size:0.95rem; }
+  /* Slim secondary — browse strips */
+  .btn.wide { min-height:48px; border-radius:15px; background:transparent; color:var(--dim); box-shadow:none; }
+  .btn.wide .ic { width:18px; height:18px; }
+  .btn.wide .t { font-size:0.92rem; }
+
+  /* ── Pairing / scan ── */
+  .center { flex:1; display:flex; flex-direction:column; justify-content:center; gap:16px; min-height:0; overflow-y:auto; }
+  .pairhead { text-align:center; padding:4px 0 2px; }
+  .pairmark { width:64px; height:64px; border-radius:20px; margin:0 auto 14px; display:grid; place-items:center;
+    background:var(--surface); border:1px solid var(--hair); box-shadow:var(--shadow); }
+  .pairmark svg { width:34px; height:34px; }
+  .pairhead .pt { font-family:var(--brand); font-weight:800; font-size:1.32rem; letter-spacing:-0.01em; }
+  .pairhead .pt span { font-weight:600; color:var(--accent); }
+  .pairhead .ps { color:var(--dim); font-size:0.88rem; margin-top:6px; }
+  .card { background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow); }
+  .card h2 { margin:0 0 8px; font-size:1.2rem; letter-spacing:-0.02em; font-weight:800; }
+  .muted { color:var(--dim); font-size:0.9rem; line-height:1.55; }
+  .faint { color:var(--faint); font-size:0.76rem; }
+  .cta { appearance:none; border:none; border-radius:18px; min-height:56px; padding:14px 16px; font-size:1.02rem; font-weight:800; cursor:pointer; width:100%;
+    background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:var(--shadow); }
+  .cta:active { transform:translateY(1px); }
+  .cta.sub { background:transparent; color:var(--dim); border:1px solid var(--hair-2); box-shadow:none; }
+  .cta svg { width:20px; height:20px; }
+  #video { width:100%; border-radius:16px; background:#000; aspect-ratio:1; object-fit:cover; display:block; }
+  .scan-frame { position:relative; margin-top:16px; }
+  .scan-frame .reticle { position:absolute; inset:16%; border:3px solid color-mix(in srgb,var(--accent) 85%, transparent); border-radius:18px; }
+
+  /* ── Sheets ── */
+  .ov { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); display:none; align-items:flex-end; }
+  .ov.show { display:flex; }
+  .sheet { background:var(--surface); width:100%; max-width:430px; margin:0 auto; border-radius:26px 26px 0 0;
+    padding:22px 20px calc(22px + env(safe-area-inset-bottom)); max-height:92vh; overflow-y:auto; border:1px solid var(--hair); }
+  .sheet .grab { width:40px; height:4px; border-radius:999px; background:var(--hair-2); margin:0 auto 18px; }
+  .ov.show .sheet { animation:sheetUp 0.22s ease-out; }
+  @keyframes sheetUp { from { transform:translateY(16px); opacity:0.5; } to { transform:translateY(0); opacity:1; } }
+  .ov.dialog { align-items:center; }
+  .ov.dialog .sheet { width:calc(100% - 36px); max-width:370px; margin:auto; border-radius:24px;
+    max-height:88vh; padding:24px 22px calc(24px + env(safe-area-inset-bottom)); }
+  .ov.dialog .grab { display:none; }
+  .ov.dialog.show .sheet { animation:popIn 0.16s ease-out; }
+  @keyframes popIn { from { transform:scale(0.93); opacity:0; } to { transform:scale(1); opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .ov.show .sheet,.ov.dialog.show .sheet{ animation:none; } }
+  .sheet h3 { margin:0 0 5px; font-size:1.26rem; letter-spacing:-0.02em; font-weight:800; }
+  .sheet .muted { margin-bottom:8px; }
+  .lbl { font-size:0.78rem; color:var(--dim); margin:18px 0 10px; font-weight:700; }
+  .opt { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--hair); border-radius:14px; cursor:pointer; margin-bottom:10px; min-height:60px; }
+  .opt:active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 10%, transparent); }
+  .opt .name { font-weight:700; } .opt .meta { color:var(--faint); font-size:0.76rem; margin-left:auto; }
+  .bdthumb { width:54px; height:36px; border-radius:8px; object-fit:cover; flex:0 0 auto; border:1px solid var(--hair); background:var(--sunken); }
+  .bdthumb.none { display:grid; place-items:center; color:var(--faint); font-weight:700; }
+  .bdgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
+  .bdcell { border:1px solid var(--hair); border-radius:14px; overflow:hidden; cursor:pointer; background:var(--surface-2); position:relative; }
+  .bdcell:active { border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%, transparent); }
+  .bdcell img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; background:var(--sunken); }
+  .bdcell .name { padding:10px 12px; font-weight:700; font-size:0.88rem; }
+  .bdcell.none-cell { display:grid; place-items:center; min-height:120px; color:var(--dim); font-weight:700; text-align:center; }
+
+  /* Menu rows (More sheet) — big tap targets, escalating severity */
+  .menu { display:flex; flex-direction:column; gap:10px; }
+  .menu-row { appearance:none; width:100%; text-align:left; border:1px solid var(--hair); background:var(--surface-2); color:var(--ink);
+    border-radius:16px; padding:14px 15px; display:flex; align-items:center; gap:14px; cursor:pointer; min-height:62px; }
+  .menu-row:active { transform:translateY(1px); }
+  .menu-row .mi { width:38px; height:38px; flex:0 0 auto; border-radius:11px; display:grid; place-items:center; background:var(--surface); border:1px solid var(--hair); color:var(--dim); }
+  .menu-row .mi svg { width:19px; height:19px; }
+  .menu-row .mt { min-width:0; }
+  .menu-row .mt b { display:block; font-weight:700; font-size:0.98rem; }
+  .menu-row .mt span { display:block; color:var(--faint); font-size:0.76rem; margin-top:2px; }
+  .menu-row.warn .mi { color:var(--gold); border-color:color-mix(in srgb,var(--gold) 35%, transparent); }
+  .menu-row.warn .mt b { color:var(--gold); }
+  .menu-row.danger .mi { color:var(--danger); border-color:color-mix(in srgb,var(--danger) 40%, transparent); }
+  .menu-row.danger .mt b { color:var(--danger); }
+
   /* Strips browser */
   .strips-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .strip-cell { border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; background:var(--sunken); aspect-ratio:2/3; }
   .strip-cell img { width:100%; height:100%; object-fit:cover; display:block; }
   .strips-empty { color:var(--dim); text-align:center; padding:40px 10px; }
   .detail-img { width:100%; max-height:50vh; object-fit:contain; border-radius:12px; background:var(--sunken); margin-bottom:14px; }
-  /* Scoreboard — glanceable event stats */
-  .metaline { display:flex; gap:22px; margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
-  .stat { font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--faint); font-weight:700; }
-  .stat b { display:block; color:var(--ink); font-weight:800; font-size:1.12rem; letter-spacing:-0.01em; margin-bottom:1px; font-variant-numeric:tabular-nums; }
-  .stat.ver { margin-left:auto; text-align:right; }
-  .health { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-  .hchip { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:var(--surface-2); border:1px solid var(--hair); font-size:0.7rem; font-weight:700; color:var(--dim); }
-  .hchip .hd { width:7px; height:7px; border-radius:50%; background:var(--faint); }
-  .hchip.ok .hd { background:var(--ok); } .hchip.bad .hd { background:var(--danger); } .hchip.bad { color:var(--danger); }
-
-  /* Actions — fixed, predictable button sizes (no vertical stretching) so the
-     controls stay put like a real remote instead of resizing between states. */
-  .actions { display:flex; flex-direction:column; gap:11px; margin-top:16px; }
-  .spacer { flex:1; min-height:10px; }             /* pushes last-strip + footer to the bottom */
-  .btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface); color:var(--ink); border-radius:22px;
-    font-family:inherit; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-    box-shadow:var(--shadow); transition:transform 0.07s ease, filter 0.15s ease; min-height:60px; padding:10px; width:100%; }
-  .btn:active { transform:translateY(1px) scale(0.995); }
-  .btn:disabled { opacity:0.35; cursor:not-allowed; box-shadow:none; }
-  .btn .ic { width:24px; height:24px; flex:0 0 auto; }
-  .btn .t { font-size:1rem; letter-spacing:-0.01em; }
-  .btn .s { font-size:0.66rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); }
-  /* The one big contextual action (Start / Cancel / Ready for next / Reopen). */
-  .primary { min-height:76px; border-radius:24px; }
-  .primary .ic { width:30px; height:30px; }
-  .primary .t { font-size:1.16rem; font-weight:800; }
-  /* Start reads as THE call to action: a soft accent glow lifts it off the stack. */
-  .btn.accent.primary { box-shadow:var(--shadow), 0 8px 26px color-mix(in srgb,var(--accent) 42%, transparent); }
-  /* Secondary buttons read as a tidy row: icon beside a shorter label. */
-  .grid2 { display:flex; gap:11px; }
-  .grid2 .btn { flex:1; }
-  .grid2 .btn, .btn.wide { flex-direction:row; gap:9px; min-height:54px; border-radius:18px; }
-  .grid2 .btn .ic, .btn.wide .ic { width:21px; height:21px; }
-  .grid2 .btn .t, .btn.wide .t { font-size:0.95rem; }
-  .btn.accent { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
-  .btn.accent .s { color:color-mix(in srgb,var(--accent-ink) 62%, transparent); }
-  .btn.accent .t { font-size:1.15rem; font-weight:800; }
-  .btn.danger { color:var(--danger); }
-  .btn.info { color:var(--info); }
-  .btn.go { color:var(--ok); }
-
-  /* Last-strip panel — finish the previous guest while a new session runs */
-  .lastsess { flex:0 0 auto; margin-top:12px; background:var(--surface); border:1px solid var(--hair); border-radius:16px; padding:11px 12px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow); }
-  .lastsess .ls-thumb { width:44px; height:66px; border-radius:8px; object-fit:cover; background:var(--sunken); border:1px solid var(--hair); flex:0 0 auto; cursor:zoom-in; }
-  .lastsess .ls-info { min-width:0; flex:1; }
-  .lastsess .ls-t { font-weight:800; font-size:0.9rem; letter-spacing:-0.01em; }
-  .lastsess .ls-s { color:var(--faint); font-size:0.7rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .lastsess .ls-btns { display:flex; gap:8px; flex:0 0 auto; }
-  .lastsess .ls-btn { appearance:none; border:1px solid var(--hair-2); background:var(--surface-2); color:var(--ink); border-radius:12px;
-    padding:9px 13px; font-family:inherit; font-weight:700; font-size:0.82rem; display:flex; align-items:center; gap:6px; cursor:pointer; box-shadow:var(--shadow); }
-  .lastsess .ls-btn:active { transform:translateY(1px); }
-  .lastsess .ls-btn svg { width:16px; height:16px; }
-  .lastsess .ls-btn.print { color:var(--info); } .lastsess .ls-btn.text { color:var(--ok); }
-  .lastsess .ls-btn:disabled { opacity:0.4; cursor:not-allowed; box-shadow:none; }
-
-  .foot { display:flex; align-items:center; justify-content:space-between; padding:14px 4px 2px; }
-  .foot .link { appearance:none; border:none; background:none; color:var(--faint); font-size:0.76rem; font-weight:600; cursor:pointer; padding:6px 2px; }
-
-  /* Pairing */
-  .center { flex:1; display:flex; flex-direction:column; justify-content:center; gap:14px; }
-  .card { background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow); }
-  .card h2 { margin:0 0 8px; font-size:1.22rem; letter-spacing:-0.02em; }
-  .muted { color:var(--dim); font-size:0.9rem; line-height:1.55; }
-  .faint { color:var(--faint); font-size:0.76rem; }
-  .cta { appearance:none; border:none; border-radius:22px; padding:16px; font-size:1rem; font-weight:800; cursor:pointer; width:100%;
-    background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:var(--shadow); }
-  .cta.sub { background:transparent; color:var(--dim); border:1px solid var(--hair-2); box-shadow:none; }
-  .cta svg { width:20px; height:20px; }
-  #video { width:100%; border-radius:14px; background:#000; aspect-ratio:1; object-fit:cover; display:block; }
-  .scan-frame { position:relative; margin-top:16px; }
-  .scan-frame .reticle { position:absolute; inset:16%; border:3px solid color-mix(in srgb,var(--accent) 85%, transparent); border-radius:16px; }
-
-  /* Sheets */
-  .ov { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); display:none; align-items:flex-end; }
-  .ov.show { display:flex; }
-  .sheet { background:var(--surface); width:100%; max-width:420px; margin:0 auto; border-radius:24px 24px 0 0;
-    padding:22px 20px calc(22px + env(safe-area-inset-bottom)); max-height:92vh; overflow-y:auto; border:1px solid var(--hair); }
-  .sheet .grab { width:38px; height:4px; border-radius:999px; background:var(--hair-2); margin:0 auto 16px; }
-  .ov.show .sheet { animation:sheetUp 0.2s ease-out; }
-  @keyframes sheetUp { from { transform:translateY(14px); opacity:0.5; } to { transform:translateY(0); opacity:1; } }
-  /* Centered popup — for short action dialogs (dialer, print, confirm) */
-  .ov.dialog { align-items:center; }
-  .ov.dialog .sheet { width:calc(100% - 36px); max-width:360px; margin:auto; border-radius:24px;
-    max-height:88vh; padding:24px 22px calc(24px + env(safe-area-inset-bottom)); }
-  .ov.dialog .grab { display:none; }
-  .ov.dialog.show .sheet { animation:popIn 0.16s ease-out; }
-  @keyframes popIn { from { transform:scale(0.93); opacity:0; } to { transform:scale(1); opacity:1; } }
-  @media (prefers-reduced-motion:reduce){ .ov.show .sheet,.ov.dialog.show .sheet{ animation:none; } }
-  .sheet h3 { margin:0 0 4px; font-size:1.22rem; letter-spacing:-0.02em; }
-  .sheet .muted { margin-bottom:8px; }
-  .lbl { font-size:0.64rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--faint); margin:16px 0 9px; font-weight:700; }
-  .opt { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--hair); border-radius:14px; cursor:pointer; margin-bottom:9px; }
-  .opt:active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 10%, transparent); }
-  .opt .name { font-weight:700; } .opt .meta { color:var(--faint); font-size:0.74rem; margin-left:auto; }
-  .bdthumb { width:52px; height:35px; border-radius:8px; object-fit:cover; flex:0 0 auto; border:1px solid var(--hair); background:var(--sunken); }
-  .bdthumb.none { display:grid; place-items:center; color:var(--faint); font-weight:700; }
-  /* Backdrop picker as a grid of larger preview cells */
-  .bdgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-  .bdcell { border:1px solid var(--hair); border-radius:14px; overflow:hidden; cursor:pointer; background:var(--surface-2); position:relative; }
-  .bdcell:active { border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%, transparent); }
-  .bdcell img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; background:var(--sunken); }
-  .bdcell .name { padding:9px 11px; font-weight:700; font-size:0.86rem; }
-  .bdcell.none-cell { display:grid; place-items:center; min-height:118px; color:var(--dim); font-weight:700; }
 
   /* Dialer */
-  .dialdisp { text-align:center; font-size:1.9rem; font-weight:800; letter-spacing:0.04em; font-variant-numeric:tabular-nums;
+  .dialdisp { text-align:center; font-size:1.95rem; font-weight:800; letter-spacing:0.04em; font-variant-numeric:tabular-nums;
     padding:14px; min-height:64px; color:var(--ink); }
   .dialdisp .plc { color:var(--faint); font-weight:600; }
   .dial { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; justify-items:center; }
-  .dial button { aspect-ratio:1; width:100%; max-width:74px; border:1px solid var(--hair); background:var(--surface-2); color:var(--ink);
+  .dial button { aspect-ratio:1; width:100%; max-width:76px; border:1px solid var(--hair); background:var(--surface-2); color:var(--ink);
     border-radius:50%; font-size:1.6rem; font-weight:700; cursor:pointer; display:grid; place-items:center; }
   .dial button:active { background:var(--sunken); }
   .dial .del svg { width:26px; height:26px; }
+  .stepper { display:flex; align-items:center; gap:20px; justify-content:center; margin:8px 0; }
+  .stepper button { width:58px; height:58px; border-radius:16px; border:1px solid var(--hair-2); background:var(--surface-2); color:var(--ink); font-size:1.7rem; font-weight:800; cursor:pointer; }
+  .stepper .n { font-size:2.3rem; font-weight:800; min-width:54px; text-align:center; font-variant-numeric:tabular-nums; }
 
-  .stepper { display:flex; align-items:center; gap:20px; justify-content:center; margin:6px 0; }
-  .stepper button { width:56px; height:56px; border-radius:16px; border:1px solid var(--hair-2); background:var(--surface-2); color:var(--ink); font-size:1.7rem; font-weight:800; cursor:pointer; }
-  .stepper .n { font-size:2.2rem; font-weight:800; min-width:52px; text-align:center; font-variant-numeric:tabular-nums; }
-
-  .toast { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(16px);
-    background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:999px; font-size:0.85rem; font-weight:700;
+  .toast { position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(16px);
+    background:var(--ink); color:var(--bg); padding:13px 22px; border-radius:999px; font-size:0.88rem; font-weight:700;
     opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s; z-index:60; max-width:88vw; text-align:center; box-shadow:var(--shadow); }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .hidden { display:none !important; }
-  /* Banner at the top of the app (in-flow so it pushes content down and never
-     covers the top-bar controls): reconnecting (info) or an active alert. */
-  .netbanner { text-align:center; font-size:0.82rem; font-weight:800; overflow:hidden; max-height:0; padding:0 14px;
-    border-radius:12px; transition:max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease; }
-  .netbanner.show { max-height:64px; padding:10px 14px; margin-bottom:8px; }
+
+  /* Top banner (reconnect + active alert) — in-flow so it pushes content down */
+  .netbanner { text-align:center; font-size:0.84rem; font-weight:800; overflow:hidden; max-height:0; padding:0 14px;
+    border-radius:13px; transition:max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease; flex:0 0 auto; }
+  .netbanner.show { max-height:72px; padding:11px 14px; margin-bottom:10px; }
   .netbanner.info { background:var(--info); color:#04121e; }
   .netbanner.warn { background:var(--gold); color:#241d00; }
   .netbanner.err  { background:var(--danger); color:#2a0806; }
-  .ghosticon.on { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+
   /* strip lightbox */
   .lb { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.92); display:none; align-items:center; justify-content:center; padding:24px; }
   .lb.show { display:flex; } .lb img { max-width:100%; max-height:100%; border-radius:10px; }
@@ -217,68 +256,69 @@
   <div class="app">
     <div class="netbanner" id="netBanner"></div>
     <div class="bar">
-      <div class="wm"><b>Photobooth&nbsp;Remote</b><span class="tag">CyberColt</span></div>
-      <div style="display:flex;gap:8px;">
+      <div class="wm"><span class="b1">CyberColt</span><span class="b2">Remote</span></div>
+      <div class="barbtns">
         <button class="ghosticon" id="alertBtn" aria-label="Alerts" title="Alerts"><svg id="alertIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
-        <button class="ghosticon" id="refreshBtn" aria-label="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
-        <button class="ghosticon" id="themeBtn" aria-label="Theme"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+        <button class="ghosticon" id="moreBtn" aria-label="Booth controls" title="Booth controls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       </div>
     </div>
 
     <!-- Console -->
-    <div id="consoleView" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0;">
-      <div class="hero">
-        <div class="hero-row">
-          <div class="thumb" id="thumb"><div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-1M17 21v-1"/></svg></div></div>
-          <div class="hero-main">
+    <div id="consoleView" class="hidden">
+      <div class="scroll">
+        <div class="hero">
+          <div class="status">
+            <span class="pill" id="pill"><span class="dot" id="dot"></span><span id="pillTxt">Connecting…</span></span>
             <div class="ev" id="evName">Booth</div>
             <div class="venue" id="venue"></div>
-            <span class="pill" id="pill"><span class="dot" id="dot"></span><span id="pillTxt">—</span></span>
+          </div>
+          <div class="thumb empty" id="thumb"><div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-1M17 21v-1"/></svg></div></div>
+          <div class="metaline">
+            <span class="stat">Sessions<b id="sessionsV">—</b></span>
+            <span class="stat">Prints<b id="printsMadeV">—</b></span>
+            <span class="stat" id="leftStat" style="display:none;">Left<b id="printsV">—</b></span>
+            <span class="stat ver">Booth<b id="verV">—</b></span>
+          </div>
+          <div class="health" id="health"></div>
+        </div>
+
+        <!-- Last strip — persists after the guest leaves so you can print/text it
+             while the booth is already running the next session -->
+        <div class="lastsess hidden" id="lastSess">
+          <img class="ls-thumb" id="lsThumb" alt="Last strip">
+          <div class="ls-info">
+            <div class="ls-t">Last strip</div>
+            <div class="ls-s" id="lsSub">Finish it while the booth is free</div>
+          </div>
+          <div class="ls-btns">
+            <button class="ls-btn print" id="lsPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg>Print</button>
+            <button class="ls-btn text" id="lsText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Text</button>
           </div>
         </div>
-        <div class="metaline">
-          <span class="stat">Sessions<b id="sessionsV">—</b></span>
-          <span class="stat">Prints<b id="printsMadeV">—</b></span>
-          <span class="stat" id="leftStat" style="display:none;">Left<b id="printsV">—</b></span>
-          <span class="stat ver">Booth<b id="verV">—</b></span>
-        </div>
-        <div class="health" id="health"></div>
       </div>
 
-      <div class="actions">
-        <button class="btn accent primary" id="startBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Start session</span><span class="s" id="startSub">Tap to begin for the guest</span></button>
-        <button class="btn danger primary hidden" id="cancelPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="t">Cancel session</span></button>
-        <button class="btn go primary hidden" id="reopenPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Reopen booth</span></button>
-        <button class="btn accent primary hidden" id="nextPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 5l7 7-7 7M4 12h16"/></svg><span class="t">Ready for next guest</span><span class="s">clears the booth for the next session</span></button>
-        <div class="grid2" id="previewRow">
+      <!-- Pinned action dock — the primary button lives in the same thumb-zone spot every state -->
+      <div class="dock">
+        <div class="grid2 hidden" id="previewRow">
           <button class="btn info" id="printBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg><span class="t">Print</span></button>
           <button class="btn go" id="textBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="t">Text</span></button>
           <button class="btn" id="retakeBtn" style="display:none;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Retake</span></button>
         </div>
-        <button class="btn wide" id="viewStripsBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg><span class="t">View strips</span></button>
+        <button class="btn accent primary" id="startBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Start session</span><span class="s" id="startSub">Tap to begin for the guest</span></button>
+        <button class="btn danger primary hidden" id="cancelPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="t">Cancel session</span></button>
+        <button class="btn go primary hidden" id="reopenPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="t">Reopen booth</span></button>
+        <button class="btn accent primary hidden" id="nextPrimary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 5l7 7-7 7M4 12h16"/></svg><span class="t">Ready for next guest</span><span class="s">clears the booth for the next session</span></button>
+        <button class="btn wide" id="viewStripsBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg><span class="t">View all strips</span></button>
       </div>
-
-      <div class="spacer"></div>
-
-      <!-- Last strip — persists after the guest leaves so you can print/text it
-           while the booth is already running the next session -->
-      <div class="lastsess hidden" id="lastSess">
-        <img class="ls-thumb" id="lsThumb" alt="Last strip">
-        <div class="ls-info">
-          <div class="ls-t">Last strip</div>
-          <div class="ls-s" id="lsSub">Finish it while the booth is free</div>
-        </div>
-        <div class="ls-btns">
-          <button class="ls-btn print" id="lsPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5h-3"/></svg>Print</button>
-          <button class="ls-btn text" id="lsText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Text</button>
-        </div>
-      </div>
-
-      <div class="foot"><button class="link" id="switchBtn">Switch booth</button><button class="link" id="closeLink">Close booth</button><button class="link" id="endLink" style="color:var(--danger);">End event</button></div>
     </div>
 
     <!-- Pair / scan -->
     <div id="scanView" class="center hidden">
+      <div class="pairhead">
+        <div class="pairmark"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><rect x="8" y="2" width="8" height="20" rx="2.6"/><circle cx="12" cy="7" r="2.2"/><line x1="10" y1="13" x2="14" y2="13"/><line x1="10" y1="16.5" x2="14" y2="16.5"/></svg></div>
+        <div class="pt">CyberColt <span>Remote</span></div>
+        <div class="ps">Run the photobooth from your phone.</div>
+      </div>
       <div id="resumeCard" class="card hidden">
         <h2 id="resumeName">Resume booth</h2>
         <div class="muted">Reconnect to the last booth you controlled.</div>
@@ -289,7 +329,7 @@
       </div>
       <div id="pairCard" class="card">
         <h2>Pair with a booth</h2>
-        <div class="muted">On the booth, open <b>console → Remote</b> (behind your operator code) to show a QR, then scan it here.</div>
+        <div class="muted">On the booth, open <b>console &rarr; Remote</b> (behind your operator code) to show a QR, then scan it here.</div>
         <div class="scan-frame hidden" id="scanFrame"><video id="video" playsinline muted></video><div class="reticle"></div></div>
         <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
           <button class="cta" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg> Scan booth QR</button>
@@ -314,7 +354,7 @@
     <h3>Print the strip</h3>
     <div class="muted" id="facesNote" style="display:none;"></div>
     <div class="lbl">Copies</div>
-    <div class="stepper"><button id="pMinus">−</button><span class="n" id="pN">1</span><button id="pPlus">+</button></div>
+    <div class="stepper"><button id="pMinus" aria-label="Fewer copies">&minus;</button><span class="n" id="pN">1</span><button id="pPlus" aria-label="More copies">+</button></div>
     <button class="cta" id="printGoBtn" style="margin-top:16px;">Print now</button>
     <button class="cta sub" id="printCancelBtn" style="margin-top:10px;">Back</button>
   </div></div>
@@ -328,11 +368,24 @@
     <button class="cta sub" id="textCancelBtn" style="margin-top:10px;">Back</button>
   </div></div>
 
-  <!-- End confirm popup -->
-  <div class="ov dialog" id="endSheet"><div class="sheet"><div class="grab"></div>
-    <h3>End this event?</h3><div class="muted">This unpairs the booth and returns it to the pairing screen. Only do this when the event is over.</div>
-    <button class="cta" id="endGoBtn" style="margin-top:16px;background:var(--danger);color:#fff;">End event</button>
-    <button class="cta sub" id="endCancelBtn" style="margin-top:10px;">Back</button>
+  <!-- More / booth controls sheet -->
+  <div class="ov" id="moreSheet"><div class="sheet"><div class="grab"></div>
+    <h3>Booth controls</h3><div class="muted">Everything else you might need during the event.</div>
+    <div class="menu" style="margin-top:16px;">
+      <button class="menu-row" id="switchBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h11M4 7l4-4M4 7l4 4"/><path d="M20 17H9M20 17l-4-4M20 17l-4 4"/></svg></span><span class="mt"><b>Switch booth</b><span>Pair or resume a different booth</span></span></button>
+      <button class="menu-row" id="refreshBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span><span class="mt"><b>Reload remote</b><span>Fetch the latest version</span></span></button>
+      <button class="menu-row" id="themeBtn"><span class="mi"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></span><span class="mt"><b>Theme</b><span>Switch light and dark</span></span></button>
+      <button class="menu-row warn" id="closeLink"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span><span class="mt"><b>Close booth</b><span>Pause new sessions for a break</span></span></button>
+      <button class="menu-row danger" id="endLink"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.4 18.4A9 9 0 1 0 5.6 5.6"/><path d="M4 4l16 16"/></svg></span><span class="mt"><b>End event</b><span>Unpair and finish — use when done</span></span></button>
+    </div>
+    <button class="cta sub" id="moreCloseBtn" style="margin-top:16px;">Back</button>
+  </div></div>
+
+  <!-- Branded confirm (replaces native confirm; one surface for all destructive actions) -->
+  <div class="ov dialog" id="confirmOv"><div class="sheet">
+    <h3 id="confirmTitle"></h3><div class="muted" id="confirmBody"></div>
+    <button class="cta" id="confirmGo" style="margin-top:18px;"></button>
+    <button class="cta sub" id="confirmCancel" style="margin-top:10px;">Back</button>
   </div></div>
 
   <!-- Strips browser sheet -->
@@ -347,7 +400,7 @@
   <div class="ov" id="detailSheet"><div class="sheet"><div class="grab"></div>
     <img class="detail-img" id="detailImg" alt="Strip">
     <div class="lbl">Copies</div>
-    <div class="stepper"><button id="dMinus">−</button><span class="n" id="dN">1</span><button id="dPlus">+</button></div>
+    <div class="stepper"><button id="dMinus" aria-label="Fewer copies">&minus;</button><span class="n" id="dN">1</span><button id="dPlus" aria-label="More copies">+</button></div>
     <button class="cta" id="detailPrintBtn" style="margin-top:14px;background:var(--info);color:#04121e;">Reprint</button>
     <button class="cta" id="detailTextBtn" style="margin-top:10px;background:var(--ok);color:#04140a;">Text this strip</button>
     <button class="cta sub" id="detailShareBtn" style="margin-top:10px;">Share link</button>
@@ -371,18 +424,41 @@ const firebaseConfig = {
 };
 const $ = (id) => document.getElementById(id);
 let toastT=null; const toast=(m)=>{ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); };
-const showView=(v)=>['scanView','consoleView','gate'].forEach(id=>$(id).classList.toggle('hidden',id!==v));
+// Showing the console also surfaces the live controls (alerts + booth-controls menu);
+// hide them on the pairing / revoked screens where they'd do nothing.
+const showView=(v)=>{ ['scanView','consoleView','gate'].forEach(id=>$(id).classList.toggle('hidden',id!==v));
+  const conn=(v==='consoleView'); $('moreBtn').classList.toggle('hidden',!conn); $('alertBtn').classList.toggle('hidden',!conn); };
 
 // Theme
 const THEME_KEY='ccpb_remote_theme';
 function applyTheme(t){ document.documentElement.setAttribute('data-theme',t);
-  document.querySelector('meta[name=theme-color]').setAttribute('content', t==='light'?'#e9ebef':'#0d0f13');
+  document.querySelector('meta[name=theme-color]').setAttribute('content', t==='light'?'#eceef2':'#0b0d12');
   $('themeIcon').innerHTML = t==='light'
     ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
     : '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>'; }
 let theme=(()=>{ try{return localStorage.getItem(THEME_KEY)||'dark';}catch(_){return 'dark';} })(); applyTheme(theme);
 $('themeBtn').onclick=()=>{ theme=theme==='dark'?'light':'dark'; try{localStorage.setItem(THEME_KEY,theme);}catch(_){} applyTheme(theme); };
 $('refreshBtn').onclick=()=>location.reload();
+
+// Booth-controls menu (Switch / Reload / Theme / Close / End)
+$('moreBtn').onclick=()=>{ buzz(); $('moreSheet').classList.add('show'); };
+$('moreCloseBtn').onclick=()=>$('moreSheet').classList.remove('show');
+$('moreSheet').onclick=(e)=>{ if(e.target===$('moreSheet')) $('moreSheet').classList.remove('show'); };
+
+// ── Branded confirm — one surface for every destructive action (no native confirm) ──
+function uiConfirm({title, body, confirm='Confirm', danger=false}){
+  return new Promise((res)=>{
+    $('confirmTitle').textContent=title; $('confirmBody').textContent=body;
+    const go=$('confirmGo'); go.textContent=confirm;
+    go.style.background = danger ? 'var(--danger)' : 'var(--accent)';
+    go.style.color = danger ? '#fff' : 'var(--accent-ink)';
+    const ov=$('confirmOv'); ov.classList.add('show'); buzz();
+    const done=(v)=>{ ov.classList.remove('show'); go.onclick=null; $('confirmCancel').onclick=null; ov.onclick=null; res(v); };
+    go.onclick=()=>{ buzz(); done(true); };
+    $('confirmCancel').onclick=()=>done(false);
+    ov.onclick=(e)=>{ if(e.target===ov) done(false); };
+  });
+}
 
 // ── Haptics — a light tick confirms every press feels real, like a hardware remote ──
 const buzz=(ms=12)=>{ try{ navigator.vibrate && navigator.vibrate(ms); }catch(_){} };
@@ -556,7 +632,7 @@ function render(d){
   $('venue').textContent=[(d&&d.eventVenue)||'', 'Booth '+PAIR.b.replace(/^dev_/,'').slice(0,6).toUpperCase()].filter(Boolean).join(' · ');
   $('dot').className='dot '+(on?'online':'offline');
 
-  const labels={ idle:'Idle · ready', capturing:'Taking photos', composing:'Building strip…', preview:'Strip ready', closed:'Booth closed', unpaired:'Not paired', offline:'Offline' };
+  const labels={ idle:'Ready', capturing:'Taking photos', composing:'Building strip…', preview:'Strip ready', closed:'Booth closed', unpaired:'Not paired', offline:'Offline' };
   let txt=labels[act]||act; if (act==='capturing'&&d&&d.photoN&&d.photoTotal) txt=`Photo ${d.photoN} of ${d.photoTotal}`;
   $('pillTxt').textContent=txt;
   $('pill').className='pill '+(act==='idle'?'':act==='preview'?'ready':(act==='closed'||act==='offline')?'off':'busy');
@@ -583,6 +659,8 @@ function render(d){
       ? '<div class="ph"><div class="spinner"></div><span class="cap">Receiving strip…</span></div>'
       : '<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-1M17 21v-1"/></svg></div>';
   }
+  // Collapse the preview entirely when idle — nothing to see, reclaim the space.
+  thumb.classList.toggle('empty', !strip && !receiving);
 
   // contextual actions
   setPrimary(act==='closed'?'reopen':(act==='capturing'||act==='composing')?'cancel':act==='preview'?'next':'start');
@@ -608,8 +686,7 @@ function render(d){
   // View strips: available whenever the booth is online and not mid-capture.
   $('viewStripsBtn').disabled = !on || act==='capturing' || act==='composing';
   const canClose=on&&(act==='idle'||act==='preview');
-  $('closeLink').style.visibility=canClose?'visible':'hidden';
-  $('closeLink').textContent=act==='closed'?'':'Close booth';
+  $('closeLink').style.display=canClose?'':'none';
 
   if (d&&d.lastCmdId&&d.lastCmdId!==lastAck&&d.lastCmdResult){
     lastAck=d.lastCmdId; const r=d.lastCmdResult;
@@ -639,15 +716,16 @@ function wire(){
   $('cancelPrimary').onclick=()=>{ if(!$('cancelPrimary').disabled){ sendCmd({action:'cancel'}); toast('Cancelling…'); } };
   $('reopenPrimary').onclick=()=>{ if(!$('reopenPrimary').disabled){ sendCmd({action:'reopen'}); toast('Reopening…'); } };
   $('nextPrimary').onclick=()=>{ if(!$('nextPrimary').disabled){ sendCmd({action:'reset'}); toast('Ready for next guest'); } };
-  $('closeLink').onclick=()=>{ sendCmd({action:'close'}); toast('Closing booth…'); };
-  $('endLink').onclick=()=>$('endSheet').classList.add('show');
-  $('endCancelBtn').onclick=()=>$('endSheet').classList.remove('show');
-  $('endGoBtn').onclick=()=>{ $('endSheet').classList.remove('show'); sendCmd({action:'end'}); toast('Ending event…'); };
+  // Close + End live in the booth-controls menu and both confirm first (destructive).
+  $('closeLink').onclick=async ()=>{ $('moreSheet').classList.remove('show');
+    if(await uiConfirm({title:'Close the booth?',body:'Guests can’t start a session until you reopen it. Good for a break.',confirm:'Close booth'})){ sendCmd({action:'close'}); toast('Closing booth…'); } };
+  $('endLink').onclick=async ()=>{ $('moreSheet').classList.remove('show');
+    if(await uiConfirm({title:'End this event?',body:'This unpairs the booth and sends it back to the pairing screen. Only do this when the event is over.',confirm:'End event',danger:true})){ sendCmd({action:'end'}); toast('Ending event…'); } };
   $('startBtn').onclick=()=>{ if(!$('startBtn').disabled) openStartSheet(); };
   $('printBtn').onclick=()=>{ if(!$('printBtn').disabled) openPrintSheet(); };
   $('textBtn').onclick=()=>{ if(!$('textBtn').disabled) openTextSheet(); };
   $('retakeBtn').onclick=()=>{ if(!$('retakeBtn').disabled){ sendCmd({action:'retake'}); toast('Retaking…'); } };
-  $('switchBtn').onclick=()=>{ if(statusUnsub) statusUnsub(); stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden'); releaseWake(); setAlertBanner(null); setNetBanner(null); showScan(loadPair()); };
+  $('switchBtn').onclick=()=>{ $('moreSheet').classList.remove('show'); if(statusUnsub) statusUnsub(); stopStripsWatch(); stripsCache=[]; $('lastSess').classList.add('hidden'); releaseWake(); setAlertBanner(null); setNetBanner(null); showScan(loadPair()); };
   $('sheetCancelBtn').onclick=()=>$('startSheet').classList.remove('show');
   $('printCancelBtn').onclick=()=>$('printSheet').classList.remove('show');
   $('textCancelBtn').onclick=()=>closeTextSheet();
@@ -659,7 +737,9 @@ function wire(){
   // Tap the dimmed backdrop of a popup to dismiss it (only when the backdrop itself is clicked).
   $('textSheet').onclick=(e)=>{ if(e.target===$('textSheet')) closeTextSheet(); };
   $('printSheet').onclick=(e)=>{ if(e.target===$('printSheet')) $('printSheet').classList.remove('show'); };
-  $('endSheet').onclick=(e)=>{ if(e.target===$('endSheet')) $('endSheet').classList.remove('show'); };
+  $('stripsSheet').onclick=(e)=>{ if(e.target===$('stripsSheet')) $('stripsSheet').classList.remove('show'); };
+  $('detailSheet').onclick=(e)=>{ if(e.target===$('detailSheet')) $('detailSheet').classList.remove('show'); };
+  $('startSheet').onclick=(e)=>{ if(e.target===$('startSheet')) $('startSheet').classList.remove('show'); };
   buildDialpad();
 }
 
@@ -732,7 +812,10 @@ function openDetail(id){
   $('detailTextBtn').style.display = canText ? '' : 'none';
   $('detailTextBtn').onclick=()=>{ $('detailSheet').classList.remove('show'); openTextSheet(id); };
   $('detailShareBtn').style.display = shareUrlFor(s) ? '' : 'none';
-  $('detailDelBtn').onclick=()=>{ sendCmd({action:'deleteStrip',stripId:id}); toast('Deleting…'); $('detailSheet').classList.remove('show'); };
+  $('detailDelBtn').onclick=async ()=>{
+    if(await uiConfirm({title:'Delete this strip?',body:'It’s removed from the booth and the event gallery. This can’t be undone.',confirm:'Delete strip',danger:true})){
+      sendCmd({action:'deleteStrip',stripId:id}); toast('Deleting…'); $('detailSheet').classList.remove('show'); }
+  };
   $('detailSheet').classList.add('show');
 }
 
@@ -796,7 +879,7 @@ function buildDialpad(){
   const keys=['1','2','3','4','5','6','7','8','9','','0','del'];
   $('dialPad').innerHTML=keys.map(k=>{
     if(k==='') return '<span></span>';
-    if(k==='del') return '<button class="del" data-k="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 5H8L2 12l6 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="M18 9l-6 6M12 9l6 6"/></svg></button>';
+    if(k==='del') return '<button class="del" data-k="del" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 5H8L2 12l6 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="M18 9l-6 6M12 9l6 6"/></svg></button>';
     return `<button data-k="${k}">${k}</button>`;
   }).join('');
   $('dialPad').querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -821,7 +904,7 @@ $('textGoBtn')?.addEventListener('click', async ()=>{
     if (cur && cur.lastStripId === textTarget && cur.activity==='preview') textedLive=true;
     // Keep the sheet open + clear the pad so the operator can text another guest
     // the same strip without reopening. "Done" closes it.
-    digits=''; renderDial(); toast('Sent ✓ — add another number or tap Done');
+    digits=''; renderDial(); toast('Sent — add another number, or tap Done');
     $('textCancelBtn').textContent='Done'; }
   catch(e){ toast('Text failed — try again'); }
   finally{ btn.disabled=false; btn.textContent='Send text'; }
