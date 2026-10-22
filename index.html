@@ -436,6 +436,28 @@ const firebaseConfig = {
 };
 const $ = (id) => document.getElementById(id);
 let toastT=null; const toast=(m)=>{ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); };
+
+// ── Overlay stacking ─────────────────────────────────────────────────────────
+// Every .ov (sheets + dialogs) shares one base z-index in CSS, so without this a
+// modal opened ON TOP of an already-open one (e.g. the Delete confirm over the
+// strip detail, or the phone-number sheet) would render UNDER it purely by DOM
+// order. This lifts whichever overlay most recently gained .show to the top, and
+// resets the counter once everything is closed so it never runs away (the toast
+// at z-index 60 and the strip lightbox at 50 always stay clear of this band).
+(function(){
+  const BASE=40; let zTop=BASE;
+  const ovs=[...document.querySelectorAll('.ov')];
+  const obs=new MutationObserver((muts)=>{
+    for(const m of muts){
+      const el=m.target;
+      if(el.classList && el.classList.contains('ov') && el.classList.contains('show')){
+        el.style.zIndex=String(++zTop);
+      }
+    }
+    if(!ovs.some(o=>o.classList.contains('show'))) zTop=BASE;   // all closed → reset
+  });
+  ovs.forEach(o=>obs.observe(o,{attributes:true,attributeFilter:['class']}));
+})();
 // Showing the console also surfaces the live controls (alerts + booth-controls menu);
 // hide them on the pairing / revoked screens where they'd do nothing.
 const showView=(v)=>{ ['scanView','consoleView','gate'].forEach(id=>$(id).classList.toggle('hidden',id!==v));
