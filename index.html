@@ -364,7 +364,6 @@
   <!-- Print sheet -->
   <div class="ov dialog" id="printSheet"><div class="sheet"><div class="grab"></div>
     <h3>Print the strip</h3>
-    <div class="muted" id="facesNote" style="display:none;"></div>
     <div class="lbl">Copies</div>
     <div class="stepper"><button id="pMinus" aria-label="Fewer copies">&minus;</button><span class="n" id="pN">1</span><button id="pPlus" aria-label="More copies">+</button></div>
     <button class="cta" id="printGoBtn" style="margin-top:16px;">Print now</button>
@@ -960,14 +959,8 @@ function openStartSheet(){
 let copies=1, printTargetStrip=null;
 function openPrintSheet(stripId){
   printTargetStrip = stripId || null;
-  // Suggest one copy per detected person — only meaningful for the live strip
-  // (a past strip has no face count published).
-  const faces = (!printTargetStrip && cur && Number(cur.faces)) || 0;
-  copies = faces >= 1 ? Math.min(faces, 10) : 1;
+  copies = 1;
   $('pN').textContent = copies;
-  const note = $('facesNote');
-  if (faces >= 1){ note.style.display=''; note.textContent = `We detected ${faces} ${faces===1?'person':'people'} — suggested ${copies} ${copies===1?'copy':'copies'}.`; }
-  else note.style.display='none';
   $('printSheet').classList.add('show');
   $('pMinus').onclick=()=>{ copies=Math.max(1,copies-1); $('pN').textContent=copies; };
   $('pPlus').onclick=()=>{ copies=Math.min(10,copies+1); $('pN').textContent=copies; };
